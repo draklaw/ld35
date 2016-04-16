@@ -31,6 +31,14 @@
 #define ONE_SEC (1000000000)
 
 
+#define BLOCK_SIZE 48
+
+#define VSPEED_THRUST (BLOCK_SIZE / 60.0)
+#define VSPEED_FALLOFF 0.8
+#define VSPEED_MIN (10.0 / 60.0)
+#define VSPEED_MAX (BLOCK_SIZE * 10.0 / 60.0) // 10 blocks/s
+
+
 MainState::MainState(Game* game)
 	: GameState(game),
 
@@ -78,6 +86,11 @@ void MainState::initialize() {
 	_quitInput = _inputs.addInput("quit");
 	_inputs.mapScanCode(_quitInput, SDL_SCANCODE_ESCAPE);
 
+	_thrustUpInput = _inputs.addInput("up");
+	_thrustDownInput = _inputs.addInput("down");
+	_inputs.mapScanCode(_thrustUpInput, SDL_SCANCODE_UP);
+	_inputs.mapScanCode(_thrustDownInput, SDL_SCANCODE_DOWN);
+
 	// TODO: load stuff.
 	_root = _entities.createEntity(_entities.root(), "root");
 	_bg = loadEntity("bg.json");
@@ -96,8 +109,8 @@ void MainState::initialize() {
 	float bgScale = 1080.f / float(_bg.sprite()->texture()->get()->height());
 	_bg.place(Transform(Eigen::Scaling(bgScale, bgScale, 1.f)));
 
-	dbgLogger.error(screenPos(Vector2(4, 21.5)).transpose());
-	_ship.place(screenPos(Vector2(4, 21.5)));
+	//FIXME
+	_ship.place(Vector3(4*BLOCK_SIZE, 21.5, 0));
 
 	_initialized = true;
 }
@@ -151,7 +164,6 @@ void MainState::startGame() {
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
 
-
 void MainState::updateTick() {
 	_inputs.sync();
 
@@ -159,7 +171,25 @@ void MainState::updateTick() {
 		quit();
 	}
 
-	// TODO: Game update.
+	// Gameplay.
+	Vector3& speed = shipSpeed();
+	Vec3 pos = shipPosition();
+
+	// Control.
+	if(_thrustUpInput->justPressed()) {
+		pos[1] += BLOCK_SIZE;
+// 		speed += VSPEED_THRUST;
+	}
+	if(_thrustDownInput->justPressed()) {
+		pos[1] -= BLOCK_SIZE;
+// 		speed -= VSPEED_THRUST;
+	}
+
+	// Physics.
+// 	pos += speed;
+// 	speed *= VSPEED_FALLOFF;
+// 	if (speed[1] < VSPEED_MIN)
+// 		speed[1] = 0;
 
 	_entities.updateWorldTransform();
 }
@@ -220,7 +250,13 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 }
 
 
-Vector3 MainState::screenPos(const Vector2& pos) const {
-	return Vector3(pos(0) * _blockSize,
-	               pos(1) * _blockSize, 0);
+Vec3 MainState::shipPosition()
+{
+	return _ship.transform().translation();
+}
+
+
+Vector3& MainState::shipSpeed()
+{
+	return _currentSpeed;
 }

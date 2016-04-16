@@ -42,6 +42,8 @@ using namespace lair;
 
 class Game;
 
+typedef Transform::TranslationPart Vec3;
+
 
 class MainState : public GameState {
 public:
@@ -65,7 +67,9 @@ public:
 	EntityRef loadEntity(const Path& path, EntityRef parent = EntityRef(),
 	                     const Path& cd = Path());
 
-	Vector3 screenPos(const Vector2& pos) const;
+	// Just don't mind the tor&.
+	Vec3  shipPosition();
+	Vector3& shipSpeed();
 
 protected:
 	// More or less system stuff
@@ -88,12 +92,16 @@ protected:
 	unsigned    _fpsCount;
 
 	Input*      _quitInput;
+	Input*      _thrustUpInput;
+	Input*      _thrustDownInput;
 
 	EntityRef   _root;
-	EntityRef   _ship;
-	EntityRef   _bg;
 
+	EntityRef   _bg;
 	float       _blockSize;
+
+	EntityRef   _ship;
+	Vector3     _currentSpeed;
 };
 
 
