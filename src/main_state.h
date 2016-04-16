@@ -67,10 +67,6 @@ public:
 	EntityRef loadEntity(const Path& path, EntityRef parent = EntityRef(),
 	                     const Path& cd = Path());
 
-	// Just don't mind the tor&.
-	Vec3  shipPosition();
-	Vector3& shipSpeed();
-
 protected:
 	// More or less system stuff
 
@@ -108,11 +104,15 @@ protected:
 	float       _speedDamping;
 	float       _slowDown;
 
-	// Game states;
+	// Game states
+	Vec3        shipPosition();
+
 	float       _prevScrollPos;
 	float       _scrollPos;
-	float       _shipSpeed;
-	Vector3     _currentSpeed;
+	float       _shipHSpeed;
+	float       _shipVSpeed;
+	float       _climbPower;
+	float       _divePower;
 };
 
 

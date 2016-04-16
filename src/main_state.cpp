@@ -33,11 +33,24 @@
 
 #define BLOCK_SIZE 48
 
-#define VSPEED_THRUST (BLOCK_SIZE / 60.0)
-#define VSPEED_FALLOFF 0.8
-#define VSPEED_MIN (10.0 / 60.0)
-#define VSPEED_MAX (BLOCK_SIZE * 10.0 / 60.0) // 10 blocks/s
+/*
+ * One full tap instantly reaches 1/8 of a block.
+ * Tap power is restored over half a second.
+ *
+ * Falloff is a factor (about .5~.9) to let vertical speed decrease over time.
+ * - Below .5, one tap does not reach one block ; above .8 it may jump two.
+ * Thrust is the base climb/dive power ; worth one tap every 1/6th second.
+ * Below min speed (0.5 bloc/s), the ship halts and snaps to grid.
+ * The ship should never go above max speed (0.5 block/f) for safety reasons.
+ */
 
+#define POWER_MAX     ( BLOCK_SIZE / 8.0f )
+#define POWER_BUILDUP ( POWER_MAX / 30.0f )
+
+#define VSPEED_FALLOFF ( 0.8f )
+#define VSPEED_THRUST  ( POWER_MAX / 10.0f )
+#define VSPEED_MIN     ( BLOCK_SIZE *  0.5f / 60.0f )
+#define VSPEED_MAX     ( BLOCK_SIZE / 2.0f )
 
 MainState::MainState(Game* game)
 	: GameState(game),
@@ -61,7 +74,7 @@ MainState::MainState(Game* game)
       _accelerateInput(nullptr),
       _slowDownInput  (nullptr),
 
-      _blockSize   (48),
+      _blockSize   (BLOCK_SIZE),
       _speedFactor (.001),
       _acceleration(100),
       _slowDown    (100),
@@ -92,8 +105,8 @@ void MainState::initialize() {
 	_quitInput       = _inputs.addInput("quit");
 	_accelerateInput = _inputs.addInput("accel");
 	_slowDownInput   = _inputs.addInput("brake");
-	_thrustUpInput   = _inputs.addInput("up");
-	_thrustDownInput = _inputs.addInput("down");
+	_thrustUpInput   = _inputs.addInput("climb");
+	_thrustDownInput = _inputs.addInput("dive");
 
 	_inputs.mapScanCode(_quitInput,       SDL_SCANCODE_ESCAPE);
 	_inputs.mapScanCode(_accelerateInput, SDL_SCANCODE_RIGHT);
@@ -169,7 +182,10 @@ void MainState::startGame() {
 
 	//FIXME
 	_ship.place(Vector3(4*BLOCK_SIZE, 21.5, 0));
-	_shipSpeed = 0;
+	_shipHSpeed = 0;
+	_shipVSpeed = 0;
+	_climbPower = POWER_MAX;
+	_divePower  = POWER_MAX;
 
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
@@ -185,35 +201,46 @@ void MainState::updateTick() {
 	double time    = double(_loop.frameTime()) / double(ONE_SEC);
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
-	Vector3& speed = shipSpeed();
-	Vec3 pos = shipPosition();
-
-	// Control.
-	if(_thrustUpInput->justPressed()) {
-		pos[1] += BLOCK_SIZE;
-// 		speed += VSPEED_THRUST;
-	}
-	if(_thrustDownInput->justPressed()) {
-		pos[1] -= BLOCK_SIZE;
-// 		speed -= VSPEED_THRUST;
-	}
+	// Horizontal control and physics.
 	if(_accelerateInput->isPressed()) {
-		float damping = (1 + _shipSpeed / _speedDamping);
-		_shipSpeed += _acceleration / (damping * damping);
+		float damping = (1 + _shipHSpeed / _speedDamping);
+		_shipHSpeed += _acceleration / (damping * damping);
 	}
 	if(_slowDownInput->isPressed()) {
-		_shipSpeed -= _slowDown;
+		_shipHSpeed -= _slowDown;
 	}
 
-	// Horizontal physics
-	_shipSpeed = std::max(_shipSpeed, 0.f);
-	_scrollPos += _shipSpeed * _speedFactor * tickDur;
+	_shipHSpeed = std::max(_shipHSpeed, 0.f);
+	_scrollPos += _shipHSpeed * _speedFactor * tickDur;
 
-	// Vertical physics
-// 	pos += speed;
-// 	speed *= VSPEED_FALLOFF;
-// 	if (speed[1] < VSPEED_MIN)
-// 		speed[1] = 0;
+	// Vertical control and physics
+	float& vspeed = _shipVSpeed;
+
+	_climbPower = std::min(_climbPower + POWER_BUILDUP, POWER_MAX);
+	_divePower  = std::min(_divePower  + POWER_BUILDUP, POWER_MAX);
+
+	if (_thrustUpInput->justPressed()) {
+		vspeed += _climbPower;
+		_climbPower = 0;
+	}
+	if (_thrustDownInput->justPressed()) {
+		vspeed -= _divePower;
+		_divePower = 0;
+	}
+	if (_thrustUpInput->isPressed())   { vspeed += VSPEED_THRUST; }
+	if (_thrustDownInput->isPressed()) { vspeed -= VSPEED_THRUST; }
+
+	if ( !(_thrustUpInput->isPressed() || _thrustDownInput->isPressed()) )
+		vspeed *= VSPEED_FALLOFF;
+
+	if (std::abs(vspeed) > VSPEED_MAX)
+		vspeed = std::min(std::max(vspeed, -VSPEED_MAX), VSPEED_MAX);
+	
+	
+	if (std::abs(vspeed) < VSPEED_MIN)
+		vspeed = 0.0f;
+
+	shipPosition()[1] += vspeed;
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
@@ -222,7 +249,7 @@ void MainState::updateTick() {
 
 void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
-	_bg.sprite()->setView(Box2(Vector2(_scrollPos, 0), Vector2(_scrollPos + 1, 1)));
+	_bg.sprite()->setView(Box2(Vector2(_scrollPos,0), Vector2(_scrollPos + 1,1)));
 
 	// Rendering
 	Context* glc = renderer()->context();
@@ -281,10 +308,4 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 Vec3 MainState::shipPosition()
 {
 	return _ship.transform().translation();
-}
-
-
-Vector3& MainState::shipSpeed()
-{
-	return _currentSpeed;
 }
