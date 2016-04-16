@@ -23,13 +23,14 @@
 
 #include "game.h"
 #include "main_state.h"
+#include "splash_state.h"
 
 
 int main(int argc, char** argv) {
 	Game game(argc, argv);
 	game.initialize();
 
-	game.setNextState(game.mainState());
+	game.setNextState(game.splashState());
 	game.run();
 
 	game.shutdown();

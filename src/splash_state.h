@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016 the authors (see AUTHORS)
+ *  Copyright (C) 2015, 2016 Simon Boyé
  *
- *  This file is part of ld35.
+ *  This file is part of lair.
  *
  *  lair is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@
  */
 
 
-#ifndef _LAIR_DEMO_TEMPLATE_MAIN_STATE_H
-#define _LAIR_DEMO_TEMPLATE_MAIN_STATE_H
+#ifndef _LAIR_DEMO_TEMPLATE_SPLASH_STATE_H
+#define _LAIR_DEMO_TEMPLATE_SPLASH_STATE_H
 
 
 #include <lair/core/signal.h>
@@ -36,21 +36,17 @@
 #include <lair/ec/sprite_component.h>
 #include <lair/ec/bitmap_text_component.h>
 
-#include "map.h"
-
 
 using namespace lair;
 
 
 class Game;
 
-typedef Transform::TranslationPart Vec3;
 
-
-class MainState : public GameState {
+class SplashState : public GameState {
 public:
-	MainState(Game* game);
-	virtual ~MainState();
+	SplashState(Game* game);
+	virtual ~SplashState();
 
 	virtual void initialize();
 	virtual void shutdown();
@@ -60,7 +56,7 @@ public:
 
 	Game* game();
 
-	void startGame();
+	void displaySplash();
 	void updateTick();
 	void updateFrame();
 
@@ -69,11 +65,6 @@ public:
 	EntityRef loadEntity(const Path& path, EntityRef parent = EntityRef(),
 	                     const Path& cd = Path());
 
-	float blockSize() const { return _blockSize; }
-	Matrix4 screenTransform() const { return _root.transform().matrix(); }
-
-	SpriteRenderer* spriteRenderer() { return &_spriteRenderer; }
-
 protected:
 	// More or less system stuff
 
@@ -81,7 +72,6 @@ protected:
 	SpriteRenderer             _spriteRenderer;
 	SpriteComponentManager     _sprites;
 	BitmapTextComponentManager _texts;
-//	AnimationComponentManager  _anims;
 	InputManager               _inputs;
 
 	SlotTracker _slotTracker;
@@ -94,33 +84,9 @@ protected:
 	int64       _fpsTime;
 	unsigned    _fpsCount;
 
-	Input*      _quitInput;
-	Input*      _accelerateInput;
-	Input*      _slowDownInput;
-	Input*      _thrustUpInput;
-	Input*      _thrustDownInput;
+	Input*      _skipInput;
 
-	EntityRef   _root;
-	EntityRef   _ship;
-
-	Map         _map;
-
-	// Constant params
-	float       _blockSize;
-	float       _speedFactor;
-	float       _acceleration;
-	float       _speedDamping;
-	float       _slowDown;
-
-	// Game states
-	Vec3        shipPosition();
-
-	float       _prevScrollPos;
-	float       _scrollPos;
-	float       _shipHSpeed;
-	float       _shipVSpeed;
-	float       _climbPower;
-	float       _divePower;
+	EntityRef   _modelRoot;
 };
 
 
