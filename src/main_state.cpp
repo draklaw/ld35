@@ -42,6 +42,9 @@
  * Thrust is the base climb/dive power ; worth one tap every 1/6th second.
  * Below min speed (0.5 bloc/s), the ship halts and snaps to grid.
  * The ship should never go above max speed (0.5 block/f) for safety reasons.
+ *
+ * Collisions above scratch threshold will bump the player.
+ * Collisions above crash threshold will kill the player.
  */
 
 #define POWER_MAX     ( BLOCK_SIZE / 8.0f )
@@ -51,6 +54,9 @@
 #define VSPEED_THRUST  ( POWER_MAX / 10.0f )
 #define VSPEED_MIN     ( BLOCK_SIZE *  0.5f / 60.0f )
 #define VSPEED_MAX     ( BLOCK_SIZE / 2.0f )
+
+#define SCRATCH_THRESHOLD ( BLOCK_SIZE / 4.0f )
+#define CRASH_THRESHOLD   ( BLOCK_SIZE / 2.0f )
 
 MainState::MainState(Game* game)
 	: GameState(game),
@@ -199,7 +205,7 @@ void MainState::updateTick() {
 		quit();
 	}
 
-	// Gameplay.
+	// Gameplay
 	double time    = double(_loop.frameTime()) / double(ONE_SEC);
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
@@ -218,9 +224,11 @@ void MainState::updateTick() {
 	// Vertical control and physics
 	float& vspeed = _shipVSpeed;
 
+	// > Recharging thrusters.
 	_climbPower = std::min(_climbPower + POWER_BUILDUP, POWER_MAX);
 	_divePower  = std::min(_divePower  + POWER_BUILDUP, POWER_MAX);
 
+	// > Activating thrusters.
 	if (_thrustUpInput->justPressed()) {
 		vspeed += _climbPower;
 		_climbPower = 0;
@@ -232,15 +240,36 @@ void MainState::updateTick() {
 	if (_thrustUpInput->isPressed())   { vspeed += VSPEED_THRUST; }
 	if (_thrustDownInput->isPressed()) { vspeed -= VSPEED_THRUST; }
 
+	// > Automatic slowdown.
 	if ( !(_thrustUpInput->isPressed() || _thrustDownInput->isPressed()) )
 		vspeed *= VSPEED_FALLOFF;
 
+	// > Locking speed.
 	if (std::abs(vspeed) > VSPEED_MAX)
 		vspeed = std::min(std::max(vspeed, -VSPEED_MAX), VSPEED_MAX);
-	
-	
 	if (std::abs(vspeed) < VSPEED_MIN)
 		vspeed = 0.0f;
+
+	// > Bouncing on walls.
+	Vector2 shipCorner = _ship.transform().translation().head<2>();
+	Box2 shipBox = Box2(shipCorner, shipCorner + Vector2(_blockSize,_blockSize));
+	float shipX = shipCorner[0];
+	unsigned firstBlock = _map.beginIndex((_prevScrollPos + shipX) / _blockSize),
+	          lastBlock = _map.beginIndex((_scrollPos + shipX) / _blockSize + 2);
+	float dScroll = _scrollPos - _prevScrollPos;
+
+	for (int bi = firstBlock ; bi < lastBlock ; bi++)
+	{
+		float hit = _map.hit(shipBox,bi, dScroll).sizes()[1];
+		if (hit > CRASH_THRESHOLD)
+			dbgLogger.error("BOUM ! [", bi, "] | ", hit);
+		else if (hit > SCRATCH_THRESHOLD)
+			dbgLogger.warning("Clonk ! [", bi, "] | ", hit);
+		else if (hit > 0)
+			dbgLogger.log("woosh [", bi, "] | ", hit);
+	}
+
+	// > Snapping to grid.
 
 	shipPosition()[1] += vspeed;
 

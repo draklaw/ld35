@@ -51,10 +51,10 @@ unsigned Map::endIndex(int col) const {
 }
 
 
-bool Map::hitTest(const Box2& box, int bi, float dScroll) const {
+Box2 Map::hit(const Box2& box, int bi, float dScroll) const {
 	Box2 bb = blockBox(bi);
 	bb.min() -= Vector2(dScroll, 0);
-	return box.intersects(bb);
+	return box.intersection(bb);
 }
 
 
@@ -79,7 +79,7 @@ void Map::generate() {
 
 	_length = 20;
 	for(int i = 0; i < 3; ++i) {
-		_blocks.push_back(Block{ Vector2i(10, 10-1), WALL });
+		_blocks.push_back(Block{ Vector2i(10, 10-i), WALL });
 	}
 	for(int i = 0; i < 3; ++i) {
 		_blocks.push_back(Block{ Vector2i(10+i, 12), WALL });

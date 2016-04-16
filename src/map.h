@@ -52,7 +52,7 @@ public:
 
 	Box2 blockBox(int i) const;
 
-	bool hitTest(const Box2& box, int bi, float dScroll) const;
+	Box2 hit(const Box2& box, int bi, float dScroll) const;
 
 	void initialize();
 	void generate();
