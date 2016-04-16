@@ -61,8 +61,10 @@ MainState::MainState(Game* game)
       _accelerateInput(nullptr),
       _slowDownInput  (nullptr),
 
+      _map(this),
+
       _blockSize   (48),
-      _speedFactor (.001),
+      _speedFactor (1),
       _acceleration(100),
       _slowDown    (100),
       _speedDamping(250) {
@@ -101,9 +103,9 @@ void MainState::initialize() {
 	_inputs.mapScanCode(_thrustUpInput,   SDL_SCANCODE_UP);
 	_inputs.mapScanCode(_thrustDownInput, SDL_SCANCODE_DOWN);
 
-	// TODO: load stuff.
+	_map.initialize();
+
 	_root = _entities.createEntity(_entities.root(), "root");
-	_bg = loadEntity("bg.json");
 	_ship = loadEntity("ship.json");
 
 //	EntityRef text = loadEntity("text.json", _entities.root());
@@ -162,16 +164,16 @@ Game* MainState::game() {
 
 
 void MainState::startGame() {
-	float bgScale = 1080.f / float(_bg.sprite()->texture()->get()->height());
-	_bg.place(Transform(Eigen::Scaling(bgScale, bgScale, 1.f)));
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
 
 	_ship.place(Vector3(4*BLOCK_SIZE, 21.5, 0));
 	_shipSpeed = 0;
 
+	_map.generate();
+
 	//audio()->playMusic(assets()->getAsset("music.ogg"));
-	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
+//	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
 
 void MainState::updateTick() {
@@ -207,7 +209,6 @@ void MainState::updateTick() {
 
 	// Horizontal physics
 	_shipSpeed = std::max(_shipSpeed, 0.f);
-	dbgLogger.log(_shipSpeed);
 	_scrollPos += _shipSpeed * _speedFactor * tickDur;
 
 	// Vertical physics
@@ -223,7 +224,6 @@ void MainState::updateTick() {
 
 void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
-	_bg.sprite()->setView(Box2(Vector2(_scrollPos, 0), Vector2(_scrollPos + 1, 1)));
 
 	// Rendering
 	Context* glc = renderer()->context();
@@ -232,6 +232,7 @@ void MainState::updateFrame() {
 
 	_spriteRenderer.beginFrame();
 
+	_map.render(lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos));
 	_sprites.render(_loop.frameInterp(), _camera);
 	_texts.render(_loop.frameInterp());
 

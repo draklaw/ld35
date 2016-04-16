@@ -36,6 +36,8 @@
 #include <lair/ec/sprite_component.h>
 #include <lair/ec/bitmap_text_component.h>
 
+#include "map.h"
+
 
 using namespace lair;
 
@@ -71,6 +73,11 @@ public:
 	Vec3  shipPosition();
 	Vector3& shipSpeed();
 
+	float blockSize() const { return _blockSize; }
+	Matrix4 screenTransform() const { return _root.transform().matrix(); }
+
+	SpriteRenderer* spriteRenderer() { return &_spriteRenderer; }
+
 protected:
 	// More or less system stuff
 
@@ -100,6 +107,8 @@ protected:
 	EntityRef   _root;
 	EntityRef   _bg;
 	EntityRef   _ship;
+
+	Map         _map;
 
 	// Constant params
 	float       _blockSize;
