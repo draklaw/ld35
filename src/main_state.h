@@ -88,12 +88,22 @@ protected:
 	unsigned    _fpsCount;
 
 	Input*      _quitInput;
+	Input*      _accelerateInput;
+	Input*      _slowDownInput;
 
 	EntityRef   _root;
 	EntityRef   _ship;
 	EntityRef   _bg;
 
 	float       _blockSize;
+	float       _speedFactor;
+	float       _acceleration;
+	float       _speedDamping;
+	float       _slowDown;
+
+	float       _prevScrollPos;
+	float       _scrollPos;
+	float       _shipSpeed;
 };
 
 

@@ -49,9 +49,15 @@ MainState::MainState(Game* game)
       _fpsTime(0),
       _fpsCount(0),
 
-      _quitInput(nullptr),
+      _quitInput      (nullptr),
+      _accelerateInput(nullptr),
+      _slowDownInput  (nullptr),
 
-      _blockSize(48) {
+      _blockSize   (48),
+      _speedFactor (.001),
+      _acceleration(100),
+      _slowDown    (100),
+      _speedDamping(250) {
 
 	_entities.registerComponentManager(&_sprites);
 	_entities.registerComponentManager(&_texts);
@@ -75,8 +81,13 @@ void MainState::initialize() {
 	window()->onResize.connect(std::bind(&MainState::resizeEvent, this))
 	        .track(_slotTracker);
 
-	_quitInput = _inputs.addInput("quit");
-	_inputs.mapScanCode(_quitInput, SDL_SCANCODE_ESCAPE);
+	_quitInput       = _inputs.addInput("quit");
+	_accelerateInput = _inputs.addInput("accel");
+	_slowDownInput   = _inputs.addInput("brake");
+
+	_inputs.mapScanCode(_quitInput,       SDL_SCANCODE_ESCAPE);
+	_inputs.mapScanCode(_accelerateInput, SDL_SCANCODE_RIGHT);
+	_inputs.mapScanCode(_slowDownInput,   SDL_SCANCODE_LEFT);
 
 	// TODO: load stuff.
 	_root = _entities.createEntity(_entities.root(), "root");
@@ -91,13 +102,6 @@ void MainState::initialize() {
 
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
-
-	// Setup after loading
-	float bgScale = 1080.f / float(_bg.sprite()->texture()->get()->height());
-	_bg.place(Transform(Eigen::Scaling(bgScale, bgScale, 1.f)));
-
-	dbgLogger.error(screenPos(Vector2(4, 21.5)).transpose());
-	_ship.place(screenPos(Vector2(4, 21.5)));
 
 	_initialized = true;
 }
@@ -146,7 +150,14 @@ Game* MainState::game() {
 
 
 void MainState::startGame() {
-	// TODO: Setup game
+	float bgScale = 1080.f / float(_bg.sprite()->texture()->get()->height());
+	_bg.place(Transform(Eigen::Scaling(bgScale, bgScale, 1.f)));
+	_scrollPos     = 0;
+	_prevScrollPos = _scrollPos;
+
+	_ship.place(screenPos(Vector2(4, 21.5)));
+	_shipSpeed = 0;
+
 	//audio()->playMusic(assets()->getAsset("music.ogg"));
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
@@ -160,12 +171,28 @@ void MainState::updateTick() {
 	}
 
 	// TODO: Game update.
+	double time    = double(_loop.frameTime()) / double(ONE_SEC);
+	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
+	if(_accelerateInput->isPressed()) {
+		float damping = (1 + _shipSpeed / _speedDamping);
+		_shipSpeed += _acceleration / (damping * damping);
+	}
+	if(_slowDownInput->isPressed()) {
+		_shipSpeed -= _slowDown;
+	}
+	_shipSpeed = std::max(_shipSpeed, 0.f);
+	dbgLogger.log(_shipSpeed);
+	_scrollPos += _shipSpeed * _speedFactor * tickDur;
 
+	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
 }
 
 
 void MainState::updateFrame() {
+//	double time = double(_loop.frameTime()) / double(ONE_SEC);
+	_bg.sprite()->setView(Box2(Vector2(_scrollPos, 0), Vector2(_scrollPos + 1, 1)));
+
 	// Rendering
 	Context* glc = renderer()->context();
 
