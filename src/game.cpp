@@ -20,13 +20,15 @@
 
 
 #include "main_state.h"
+#include "splash_state.h"
 
 #include "game.h"
 
 
 Game::Game(int argc, char** argv)
     : GameBase(argc, argv),
-      _mainState() {
+      _mainState(),
+      _splashState() {
 }
 
 
@@ -37,16 +39,23 @@ Game::~Game() {
 void Game::initialize() {
 	GameBase::initialize();
 
-	window()->setUtf8Title("Lair - template");
+	window()->setUtf8Title("Lair - Shapeout");
 
+	_splashState.reset(new SplashState(this));
 	_mainState.reset(new MainState(this));
+
+	_splashState->initialize();
 	_mainState->initialize();
 }
 
 
 void Game::shutdown() {
 	_mainState->shutdown();
-	_mainState.reset();  // Required to ensure that everything is freed
+	_splashState->shutdown();
+
+	// Required to ensure that everything is freed
+	_mainState.reset();
+	_splashState.reset();
 
 	GameBase::shutdown();
 }
@@ -54,4 +63,9 @@ void Game::shutdown() {
 
 MainState* Game::mainState() {
 	return _mainState.get();
+}
+
+
+SplashState* Game::splashState() {
+	return _splashState.get();
 }
