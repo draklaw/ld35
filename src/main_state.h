@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2015, 2016 Simon Boyé
+ *  Copyright (C) 2016 the authors (see AUTHORS)
  *
- *  This file is part of lair.
+ *  This file is part of ld35.
  *
  *  lair is free software: you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
