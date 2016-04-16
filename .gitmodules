@@ -1,0 +1,3 @@
+[submodule "third-party/lair"]
+	path = third-party/lair
+	url = https://github.com/draklaw/lair.git

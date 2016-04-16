@@ -1,0 +1,8 @@
+{
+    "name":   "text",
+    "text": {
+        "font":         "droid_sans_24.json",
+        "text":         "Lair\nEngine",
+        "color":        [ 0.75, 0.1, 0.1, 1 ]
+    }
+}
