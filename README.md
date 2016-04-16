@@ -1,16 +1,11 @@
-# Alice Had it Easy
+# Fast-Forward (or some other name)
 
-A Ludum Dare 34 game. With two buttons. And some growing. And a psychopath bunny.
-
-
-## Playing the game:
-
-Download the [Windows 64bits binary](http://www.draklia.net/jams/alice_hie.zip) or compile it yourself !
+A Ludum Dare 35 game.
 
 
 ## Compilation:
 
-Get the source code. We use a submodule to include our "game engine", Lair. So you should clone with `--recursive`:
+Clone the repository. We use a submodule to include our "game engine", Lair. So you should clone with `--recursive`:
 ```
 git clone --recursive https://github.com/draklaw/alice_hie.git
 ```
