@@ -31,6 +31,8 @@
 #define ONE_SEC (1000000000)
 
 
+#define FRAMERATE 60
+
 #define BLOCK_SIZE 48
 
 /*
@@ -50,11 +52,11 @@
  */
 
 #define POWER_MAX     ( BLOCK_SIZE / 8.0f )
-#define POWER_BUILDUP ( POWER_MAX / 30.0f )
+#define POWER_BUILDUP ( POWER_MAX * 2.0f / FRAMERATE )
 
 #define VSPEED_FALLOFF ( 0.8f )
 #define VSPEED_THRUST  ( POWER_MAX / 10.0f )
-#define VSPEED_MIN     ( BLOCK_SIZE *  0.5f / 60.0f )
+#define VSPEED_MIN     ( BLOCK_SIZE *  0.5f / FRAMERATE )
 #define VSPEED_MAX     ( BLOCK_SIZE / 2.0f )
 
 #define SCRATCH_THRESHOLD ( BLOCK_SIZE / 4.0f )
@@ -368,7 +370,7 @@ void MainState::updateTick() {
 	if (std::abs(vspeed) < VSPEED_MIN)
 		vspeed = 0.0f;
 
-	// > Bouncing on walls.
+	// > Bouncing (or crashing) on walls.
 	Vector2 shipCorner = _ship.transform().translation().head<2>();
 	Box2 shipBox = Box2(shipCorner, shipCorner + Vector2(_blockSize,_blockSize));
 	float shipX = shipCorner[0], shipY = shipCorner[1];
@@ -392,7 +394,12 @@ void MainState::updateTick() {
 	}
 
 	// > Snapping to grid.
-	//TODO
+	if (!vspeed)
+	{
+		float delta = std::fmod(shipY,_blockSize);
+		if (delta > 1)
+			vspeed = delta / FRAMERATE * (delta > _blockSize/2.0?1:-1);
+	}
 
 	shipPosition()[1] += vspeed;
 
