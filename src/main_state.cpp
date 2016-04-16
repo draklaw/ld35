@@ -73,14 +73,20 @@ MainState::MainState(Game* game)
       _quitInput      (nullptr),
       _accelerateInput(nullptr),
       _slowDownInput  (nullptr),
+      _thrustUpInput  (nullptr),
+      _thrustDownInput(nullptr),
+      _nextShapeInput (nullptr),
+      _prevShapeInput (nullptr),
 
       _map(this),
 
-      _blockSize   (BLOCK_SIZE),
-      _speedFactor (1),
-      _acceleration(100),
-      _slowDown    (100),
-      _speedDamping(250) {
+      _blockSize    (BLOCK_SIZE),
+      _speedFactor  (1),
+      _acceleration (100),
+      _speedDamping (250),
+      _slowDown     (100),
+      _shipPartCount(6),
+      _partSpeed    (12) {
 
 	_entities.registerComponentManager(&_sprites);
 	_entities.registerComponentManager(&_texts);
@@ -109,12 +115,16 @@ void MainState::initialize() {
 	_slowDownInput   = _inputs.addInput("brake");
 	_thrustUpInput   = _inputs.addInput("climb");
 	_thrustDownInput = _inputs.addInput("dive");
+	_nextShapeInput  = _inputs.addInput("next_shape");
+	_prevShapeInput  = _inputs.addInput("prev_shape");
 
 	_inputs.mapScanCode(_quitInput,       SDL_SCANCODE_ESCAPE);
 	_inputs.mapScanCode(_accelerateInput, SDL_SCANCODE_RIGHT);
 	_inputs.mapScanCode(_slowDownInput,   SDL_SCANCODE_LEFT);
 	_inputs.mapScanCode(_thrustUpInput,   SDL_SCANCODE_UP);
 	_inputs.mapScanCode(_thrustDownInput, SDL_SCANCODE_DOWN);
+	_inputs.mapScanCode(_nextShapeInput,  SDL_SCANCODE_X);
+	_inputs.mapScanCode(_prevShapeInput,  SDL_SCANCODE_Z);
 
 	_map.initialize();
 
@@ -123,6 +133,55 @@ void MainState::initialize() {
 
 //	EntityRef text = loadEntity("text.json", _entities.root());
 //	text.place(Vector3(160, 90, .5));
+
+	_shipShapes.push_back(Vector2(0,  1));
+	_shipShapes.push_back(Vector2(1,  1));
+	_shipShapes.push_back(Vector2(2,  1));
+	_shipShapes.push_back(Vector2(0, -1));
+	_shipShapes.push_back(Vector2(1, -1));
+	_shipShapes.push_back(Vector2(2, -1));
+
+	_shipShapes.push_back(Vector2(0,  2));
+	_shipShapes.push_back(Vector2(0,  1));
+	_shipShapes.push_back(Vector2(1,  1));
+	_shipShapes.push_back(Vector2(0, -2));
+	_shipShapes.push_back(Vector2(0, -1));
+	_shipShapes.push_back(Vector2(1, -1));
+
+	_shipShapes.push_back(Vector2(-1,  2));
+	_shipShapes.push_back(Vector2( 0,  2));
+	_shipShapes.push_back(Vector2( 1,  2));
+	_shipShapes.push_back(Vector2(-1, -2));
+	_shipShapes.push_back(Vector2( 0, -2));
+	_shipShapes.push_back(Vector2( 1, -2));
+
+	_shipShapes.push_back(Vector2(-1,  3));
+	_shipShapes.push_back(Vector2( 0,  3));
+	_shipShapes.push_back(Vector2( 1,  2));
+	_shipShapes.push_back(Vector2(-1, -3));
+	_shipShapes.push_back(Vector2( 0, -3));
+	_shipShapes.push_back(Vector2( 1, -2));
+
+	_shipShapes.push_back(Vector2(-2,  4));
+	_shipShapes.push_back(Vector2(-1,  4));
+	_shipShapes.push_back(Vector2( 1,  2));
+	_shipShapes.push_back(Vector2(-2, -4));
+	_shipShapes.push_back(Vector2(-1, -4));
+	_shipShapes.push_back(Vector2( 1, -2));
+
+	_shipShapes.push_back(Vector2(-2,  5));
+	_shipShapes.push_back(Vector2(-1,  4));
+	_shipShapes.push_back(Vector2( 1,  2));
+	_shipShapes.push_back(Vector2(-2, -5));
+	_shipShapes.push_back(Vector2(-1, -4));
+	_shipShapes.push_back(Vector2( 1, -2));
+
+	_shipShapes.push_back(Vector2(-3,  6));
+	_shipShapes.push_back(Vector2(-1,  4));
+	_shipShapes.push_back(Vector2( 1,  2));
+	_shipShapes.push_back(Vector2(-3, -6));
+	_shipShapes.push_back(Vector2(-1, -4));
+	_shipShapes.push_back(Vector2( 1, -2));
 
 	loader()->load<SoundLoader>("sound.ogg");
 	//loader()->load<MusicLoader>("music.ogg");
@@ -176,6 +235,18 @@ Game* MainState::game() {
 }
 
 
+unsigned MainState::shipShapeCount() const {
+	return _shipShapes.size() / _shipPartCount;
+}
+
+
+Vector3 MainState::partPos(unsigned shape, unsigned part) const {
+	unsigned index = shape * _shipPartCount + part;
+	assert(index < _shipShapes.size());
+	return (Vector3() << _shipShapes[index], 0).finished() * _blockSize;
+}
+
+
 void MainState::startGame() {
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
@@ -187,10 +258,21 @@ void MainState::startGame() {
 	_climbPower = POWER_MAX;
 	_divePower  = POWER_MAX;
 
+	_shipShape = 0;
+	_shipParts.resize(_shipPartCount);
+	for(int i = 0; i < _shipPartCount; ++i) {
+		_shipParts[i] = _ship.clone(_ship, "shipPart");
+		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 3));
+		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 0: 3));
+		_shipParts[i].place(partPos(_shipShape, i));
+	}
+
+
 	_map.generate();
 
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
+
 
 void MainState::updateTick() {
 	_inputs.sync();
@@ -237,12 +319,31 @@ void MainState::updateTick() {
 
 	if (std::abs(vspeed) > VSPEED_MAX)
 		vspeed = std::min(std::max(vspeed, -VSPEED_MAX), VSPEED_MAX);
-	
-	
+
 	if (std::abs(vspeed) < VSPEED_MIN)
 		vspeed = 0.0f;
 
 	shipPosition()[1] += vspeed;
+
+	// Shapeshift !
+	if(_nextShapeInput->justPressed()) {
+		++_shipShape;
+	}
+	if(_prevShapeInput->justPressed()) {
+		--_shipShape;
+	}
+	_shipShape = std::max(0, std::min(int(shipShapeCount()) - 1, int(_shipShape)));
+
+	for(int i = 0; i < _shipPartCount; ++i) {
+		Vector3 p = _shipParts[i].transform().translation();
+		Vector3 q = partPos(_shipShape, i);
+		Vector3 v = q - p;
+		float dist = v.norm();
+		if(dist > _partSpeed) {
+			v *= _partSpeed / dist;
+		}
+		_shipParts[i].moveTo(p + v);
+	}
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
