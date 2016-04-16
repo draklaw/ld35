@@ -1,0 +1,7 @@
+{
+    "name":   "bg",
+    "sprite": {
+        "sprite":        "bg.png",
+        "texture_flags": "linear"
+    }
+}

@@ -49,7 +49,9 @@ MainState::MainState(Game* game)
       _fpsTime(0),
       _fpsCount(0),
 
-      _quitInput(nullptr) {
+      _quitInput(nullptr),
+
+      _blockSize(48) {
 
 	_entities.registerComponentManager(&_sprites);
 	_entities.registerComponentManager(&_texts);
@@ -61,6 +63,9 @@ MainState::~MainState() {
 
 
 void MainState::initialize() {
+	// Set to true to debug OpenGL calls
+	renderer()->context()->setLogCalls(false);
+
 	_loop.reset();
 	_loop.setTickDuration(    ONE_SEC /  60);
 	_loop.setFrameDuration(   ONE_SEC /  60);
@@ -73,22 +78,26 @@ void MainState::initialize() {
 	_quitInput = _inputs.addInput("quit");
 	_inputs.mapScanCode(_quitInput, SDL_SCANCODE_ESCAPE);
 
-	_modelRoot = _entities.createEntity(_entities.root(), "modelRoot");
-
 	// TODO: load stuff.
-	EntityRef sprite = loadEntity("sprite.json", _entities.root());
-	sprite.place(Vector3(120, 90, .5));
+	_root = _entities.createEntity(_entities.root(), "root");
+	_bg = loadEntity("bg.json");
+	_ship = loadEntity("ship.json");
 
-	EntityRef text = loadEntity("text.json", _entities.root());
-	text.place(Vector3(160, 90, .5));
+//	EntityRef text = loadEntity("text.json", _entities.root());
+//	text.place(Vector3(160, 90, .5));
 
 	loader()->load<SoundLoader>("sound.ogg");
 	//loader()->load<MusicLoader>("music.ogg");
 
 	loader()->waitAll();
+	renderer()->uploadPendingTextures();
 
-	// Set to true to debug OpenGL calls
-	renderer()->context()->setLogCalls(false);
+	// Setup after loading
+	float bgScale = 1080.f / float(_bg.sprite()->texture()->get()->height());
+	_bg.place(Transform(Eigen::Scaling(bgScale, bgScale, 1.f)));
+
+	dbgLogger.error(screenPos(Vector2(4, 21.5)).transpose());
+	_ship.place(screenPos(Vector2(4, 21.5)));
 
 	_initialized = true;
 }
@@ -184,9 +193,12 @@ void MainState::updateFrame() {
 
 void MainState::resizeEvent() {
 	Box3 viewBox(Vector3::Zero(),
-	             Vector3(window()->width()  / 4., // Big pixels
-	                     window()->height() / 4., 1));
+	             Vector3(window()->width(), window()->height(), 1));
 	_camera.setViewBox(viewBox);
+	renderer()->context()->viewport(0, 0, window()->width(), window()->height());
+
+	float scale =  float(window()->height()) / 1080.;
+	_root.place(Transform(Eigen::Scaling(scale, scale, 1.f)));
 }
 
 
@@ -201,8 +213,14 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 	}
 
 	if(!parent.isValid()) {
-		parent = _modelRoot;
+		parent = _root;
 	}
 
 	return _entities.createEntityFromJson(parent, json, localPath.dir());
+}
+
+
+Vector3 MainState::screenPos(const Vector2& pos) const {
+	return Vector3(pos(0) * _blockSize,
+	               pos(1) * _blockSize, 0);
 }

@@ -65,6 +65,8 @@ public:
 	EntityRef loadEntity(const Path& path, EntityRef parent = EntityRef(),
 	                     const Path& cd = Path());
 
+	Vector3 screenPos(const Vector2& pos) const;
+
 protected:
 	// More or less system stuff
 
@@ -87,7 +89,11 @@ protected:
 
 	Input*      _quitInput;
 
-	EntityRef   _modelRoot;
+	EntityRef   _root;
+	EntityRef   _ship;
+	EntityRef   _bg;
+
+	float       _blockSize;
 };
 
 

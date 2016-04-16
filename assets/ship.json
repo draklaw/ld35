@@ -1,0 +1,11 @@
+{
+    "name":   "sprite",
+    "sprite": {
+        "sprite":        "ship_block.png",
+        "h_tiles":       1,
+        "v_tiles":       1,
+        "index":         0,
+        "anchor":        [ 0, 0 ],
+        "texture_flags": "nearest"
+    }
+}
