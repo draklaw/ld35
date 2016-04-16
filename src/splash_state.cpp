@@ -112,7 +112,7 @@ void SplashState::run() {
 	displaySplash();
 
 	do {
-		if (sys()->getTimeNs() / ONE_SEC > 5)
+		if (sys()->getTimeNs() / ONE_SEC > .5)
 			quit();
 		
 		switch(_loop.nextEvent()) {
@@ -147,6 +147,7 @@ void SplashState::displaySplash() {
 void SplashState::updateTick() {
 	_inputs.sync();
 
+	//FIXME: ESC input is also caught by the following state, quitting the game.
 	if(_skipInput->justPressed()) {
 		quit();
 	}
