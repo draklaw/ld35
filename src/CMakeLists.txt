@@ -33,6 +33,7 @@ add_executable(${CMAKE_PROJECT_NAME}
 	main.cpp
 	game.cpp
 	main_state.cpp
+	splash_state.cpp
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}

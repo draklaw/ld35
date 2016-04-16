@@ -30,6 +30,7 @@ using namespace lair;
 
 
 class MainState;
+class SplashState;
 
 
 class Game : public GameBase {
@@ -46,8 +47,11 @@ public:
 	void shutdown();
 
 	MainState* mainState();
+	SplashState* splashState();
 
 protected:
+	std::unique_ptr<SplashState> _splashState;
+// 	std::unique_ptr<MainState> _mainmenuState;
 	std::unique_ptr<MainState> _mainState;
 };
 
