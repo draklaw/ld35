@@ -76,7 +76,7 @@ void SplashState::initialize() {
 
 	_modelRoot = _entities.createEntity(_entities.root(), "modelRoot");
 
-	EntityRef sprite = loadEntity("sprite.json", _entities.root());
+	EntityRef sprite = loadEntity("bg.json", _entities.root());
 	sprite.place(Vector3(120, 90, .5));
 
 	EntityRef text = loadEntity("text.json", _entities.root());
@@ -112,7 +112,7 @@ void SplashState::run() {
 	displaySplash();
 
 	do {
-		if (sys()->getTimeNs() * ONE_SEC > 5)
+		if (sys()->getTimeNs() / ONE_SEC > 5)
 			quit();
 		
 		switch(_loop.nextEvent()) {

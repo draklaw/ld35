@@ -167,10 +167,10 @@ void MainState::startGame() {
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
 
+	//FIXME
 	_ship.place(Vector3(4*BLOCK_SIZE, 21.5, 0));
 	_shipSpeed = 0;
 
-	//audio()->playMusic(assets()->getAsset("music.ogg"));
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
 
@@ -207,7 +207,6 @@ void MainState::updateTick() {
 
 	// Horizontal physics
 	_shipSpeed = std::max(_shipSpeed, 0.f);
-	dbgLogger.log(_shipSpeed);
 	_scrollPos += _shipSpeed * _speedFactor * tickDur;
 
 	// Vertical physics
