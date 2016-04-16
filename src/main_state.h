@@ -111,6 +111,9 @@ protected:
 	EntityRef   _root;
 	EntityRef   _ship;
 	EntityVector _shipParts;
+	EntityRef   _scoreText;
+	EntityRef   _speedText;
+	EntityRef   _distanceText;
 
 	Map         _map;
 

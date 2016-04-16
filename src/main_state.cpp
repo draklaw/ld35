@@ -141,9 +141,6 @@ void MainState::initialize() {
 	_root = _entities.createEntity(_entities.root(), "root");
 	_ship = loadEntity("ship.json");
 
-//	EntityRef text = loadEntity("text.json", _entities.root());
-//	text.place(Vector3(160, 90, .5));
-
 	_shipShapes.push_back(Vector2(0,  1));
 	_shipShapes.push_back(Vector2(1,  1));
 	_shipShapes.push_back(Vector2(2,  1));
@@ -277,8 +274,22 @@ void MainState::startGame() {
 		_shipParts[i].place(partPos(_shipShape, i));
 	}
 
+	_scoreText = loadEntity("text.json", _root);
+	_scoreText.place(Vector3(800, 1000, .5));
+	_texts.get(_scoreText)->setText("Score: 000000000");
+
+	_speedText = _scoreText.clone(_root);
+	_speedText.place(Vector3(48, 1000, .5));
+	_texts.get(_speedText)->setText("00000 km/h");
+
+	_distanceText = _scoreText.clone(_root);
+	_distanceText.place(Vector3(48, 32, .5));
+	_texts.get(_distanceText)->setText("00000 km");
 
 	_map.generate();
+
+	loader()->waitAll();
+	renderer()->uploadPendingTextures();
 
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
@@ -392,6 +403,9 @@ void MainState::updateTick() {
 
 void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
+	char buff[128];
+	snprintf(buff, 128, "%5.f km/h", _shipHSpeed);
+	_texts.get(_speedText)->setText(buff);
 
 	// Rendering
 	Context* glc = renderer()->context();
