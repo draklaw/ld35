@@ -45,6 +45,8 @@
  *
  * Collisions above scratch threshold will bump the player.
  * Collisions above crash threshold will kill the player.
+ *
+ * When bumping against a wall, the player will be ejected within two frames.
  */
 
 #define POWER_MAX     ( BLOCK_SIZE / 8.0f )
@@ -57,6 +59,8 @@
 
 #define SCRATCH_THRESHOLD ( BLOCK_SIZE / 4.0f )
 #define CRASH_THRESHOLD   ( BLOCK_SIZE / 2.0f )
+
+#define BUMP_TIME ( 2.0f )
 
 MainState::MainState(Game* game)
 	: GameState(game),
@@ -356,20 +360,24 @@ void MainState::updateTick() {
 	// > Bouncing on walls.
 	Vector2 shipCorner = _ship.transform().translation().head<2>();
 	Box2 shipBox = Box2(shipCorner, shipCorner + Vector2(_blockSize,_blockSize));
-	float shipX = shipCorner[0];
+	float shipX = shipCorner[0], shipY = shipCorner[1];
 	unsigned firstBlock = _map.beginIndex((_prevScrollPos + shipX) / _blockSize),
 	          lastBlock = _map.beginIndex((_scrollPos + shipX) / _blockSize + 2);
 	float dScroll = _scrollPos - _prevScrollPos;
 
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
 	{
-		float hit = _map.hit(shipBox,bi, dScroll).sizes()[1];
-		if (hit > CRASH_THRESHOLD)
-			dbgLogger.error("BOUM ! [", bi, "] | ", hit);
-		else if (hit > SCRATCH_THRESHOLD)
-			dbgLogger.warning("Clonk ! [", bi, "] | ", hit);
-		else if (hit > 0)
-			dbgLogger.log("woosh [", bi, "] | ", hit);
+		Box2 hit = _map.hit(shipBox,bi, dScroll);
+		float amount = hit.sizes()[1];
+		if (amount > CRASH_THRESHOLD)
+			dbgLogger.error("u ded. 'sploded hed.");
+		else if (amount > SCRATCH_THRESHOLD)
+		{
+			if (hit.min()[1] > shipY) // Above
+				vspeed = -amount / BUMP_TIME;
+			else // Below
+				vspeed = amount / BUMP_TIME;
+		}
 	}
 
 	// > Snapping to grid.
