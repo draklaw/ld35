@@ -46,6 +46,7 @@ class Game;
 
 typedef Transform::TranslationPart Vec3;
 
+typedef std::vector<EntityRef> EntityVector;
 
 class MainState : public GameState {
 public:
@@ -59,6 +60,9 @@ public:
 	virtual void quit();
 
 	Game* game();
+
+	unsigned shipShapeCount() const;
+	Vector3 partPos(unsigned shape, unsigned part) const;
 
 	void startGame();
 	void updateTick();
@@ -101,9 +105,12 @@ protected:
 	Input*      _slowDownInput;
 	Input*      _thrustUpInput;
 	Input*      _thrustDownInput;
+	Input*      _nextShapeInput;
+	Input*      _prevShapeInput;
 
 	EntityRef   _root;
 	EntityRef   _ship;
+	EntityVector _shipParts;
 
 	Map         _map;
 
@@ -113,6 +120,9 @@ protected:
 	float       _acceleration;
 	float       _speedDamping;
 	float       _slowDown;
+	unsigned    _shipPartCount;
+	std::vector<Vector2> _shipShapes;
+	float       _partSpeed;
 
 	// Game states
 	Vec3        shipPosition();
@@ -123,6 +133,7 @@ protected:
 	float       _shipVSpeed;
 	float       _climbPower;
 	float       _divePower;
+	unsigned    _shipShape;
 };
 
 

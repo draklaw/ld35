@@ -117,7 +117,7 @@ void Map::render(float scroll) {
 	while(i < _blocks.size() && _blocks[i].pos(0) < endCol) {
 		Box2 coords = offsetBox(blockBox(i), Vector2(-scroll, 0));
 		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
-		                    Texture::TRILINEAR, BLEND_NONE);
+		                    Texture::TRILINEAR, BLEND_ALPHA);
 		++i;
 	}
 }

@@ -1,11 +1,12 @@
 {
     "name":   "sprite",
     "sprite": {
-        "sprite":        "ship_block.png",
+        "sprite":        "ship.png",
         "h_tiles":       1,
-        "v_tiles":       1,
-        "index":         0,
+        "v_tiles":       3,
+        "index":         1,
         "anchor":        [ 0, 0 ],
-        "texture_flags": "bilinear"
+        "texture_flags": "bilinear",
+		"blend":         "alpha"
     }
 }
