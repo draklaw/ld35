@@ -131,6 +131,10 @@ protected:
 	float       _distance;
 	unsigned    _score;
 	Vector4     _levelColor;
+	Vector4     _levelColor2;
+	Vector4     _beamColor;
+	Vector4     _laserColor;
+	Vector4     _textColor;
 
 	float       _shipHSpeed;
 	float       _shipVSpeed;
