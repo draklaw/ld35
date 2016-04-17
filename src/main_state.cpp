@@ -274,22 +274,22 @@ void MainState::startGame() {
 	_shipParts.resize(_shipPartCount);
 	for(int i = 0; i < _shipPartCount; ++i) {
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
-		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 3));
+		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
 		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 0: 3));
 		_shipParts[i].place(partPos(_shipShape, i));
 	}
 
+	_distance = 0;
+	_score    = 0;
+
 	_scoreText = loadEntity("text.json", _root);
 	_scoreText.place(Vector3(800, 1000, .5));
-	_texts.get(_scoreText)->setText("Score: 000000000");
 
 	_speedText = _scoreText.clone(_root);
 	_speedText.place(Vector3(48, 1000, .5));
-	_texts.get(_speedText)->setText("00000 km/h");
 
 	_distanceText = _scoreText.clone(_root);
 	_distanceText.place(Vector3(48, 32, .5));
-	_texts.get(_distanceText)->setText("00000 km");
 
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
@@ -462,8 +462,15 @@ void MainState::destroyPart (unsigned part)
 void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
 	char buff[128];
-	snprintf(buff, 128, "%5.f km/h", _shipHSpeed);
+
+	snprintf(buff, 128, "%.0f km/h", _shipHSpeed);
 	_texts.get(_speedText)->setText(buff);
+
+	snprintf(buff, 128, "%.0f km", _distance);
+	_texts.get(_distanceText)->setText(buff);
+
+	snprintf(buff, 128, "%d", _score);
+	_texts.get(_scoreText)->setText(buff);
 
 	// Rendering
 	Context* glc = renderer()->context();

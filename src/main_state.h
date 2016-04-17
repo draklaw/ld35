@@ -142,6 +142,8 @@ protected:
 	float       _climbPower;
 	float       _divePower;
 	unsigned    _shipShape;
+	float       _distance;
+	unsigned    _score;
 
 	// Happenings
 	float collide (const EntityRef part);
