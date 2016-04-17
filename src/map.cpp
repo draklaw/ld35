@@ -71,13 +71,23 @@ Box2 Map::blockBox(int i) const {
 
 
 void Map::initialize() {
-	AssetSP bgAsset = _state->loader()->loadAsset<ImageLoader>("bg.png");
-	_bgTex = _state->renderer()->createTexture(bgAsset);
-
 	AssetSP tilesAsset = _state->loader()->loadAsset<ImageLoader>("tiles.png");
 	_tilesTex = _state->renderer()->createTexture(tilesAsset);
 
 	registerSection("test_map.png");
+}
+
+
+void Map::setBg(unsigned i, const Path& path) {
+	lairAssert(i < 3);
+	AssetSP bgAsset = _state->loader()->loadAsset<ImageLoader>(path);
+	_bgTex[i] = _state->renderer()->createTexture(bgAsset);
+}
+
+
+void Map::setBgScroll(unsigned i, float scroll) {
+	lairAssert(i < 3);
+	_bgScroll[i] = scroll;
 }
 
 
@@ -148,12 +158,17 @@ void Map::render(float scroll) {
 	Matrix4 trans = _state->screenTransform();
 	Vector4 color(1, 1, 1, 1);
 
-	TextureSP bgTex = _bgTex->_get();
-	float bgScroll = scroll / 1920.f;
-	Box2 bgBox(Vector2(0, 0), Vector2(1920, 1080));
-	Box2 bgTexBox(Vector2(bgScroll, 0), Vector2(bgScroll + 1, 1));
-	renderer->addSprite(trans, bgBox, color, bgTexBox, bgTex,
-	                    Texture::TRILINEAR, BLEND_NONE);
+	for(int i = 0; i < 3; ++i) {
+		if(!_bgTex[i] || !_bgTex[i]->get())
+			continue;
+
+		TextureSP bgTex = _bgTex[i]->_get();
+		float bgScroll = scroll * _bgScroll[i] / bgTex->width();
+		Box2 bgBox(Vector2(0, 0), Vector2(1920, 1080));
+		Box2 bgTexBox(Vector2(bgScroll, 0), Vector2(bgScroll + 1920.f / bgTex->width(), 1));
+		renderer->addSprite(trans, bgBox, color, bgTexBox, bgTex,
+							Texture::TRILINEAR, BLEND_NONE);
+	}
 
 	TextureSP tilesTex = _tilesTex->_get();
 	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);

@@ -58,6 +58,8 @@ public:
 
 	void initialize();
 	void registerSection(const Path& path);
+	void setBg(unsigned i, const Path& path);
+	void setBgScroll(unsigned i, float scroll);
 
 	void clear();
 	void appendSection(unsigned i);
@@ -81,7 +83,8 @@ private:
 private:
 	MainState*      _state;
 
-	TextureAspectSP _bgTex;
+	TextureAspectSP _bgTex[3];
+	float           _bgScroll[3];
 	TextureAspectSP _tilesTex;
 	unsigned        _hTiles;
 	unsigned        _vTiles;

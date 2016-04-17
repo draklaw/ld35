@@ -144,6 +144,7 @@ protected:
 	unsigned    _shipShape;
 	float       _distance;
 	unsigned    _score;
+	Vector4     _levelColor;
 
 	// Happenings
 	float collide (const EntityRef part);

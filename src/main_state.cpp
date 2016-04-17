@@ -142,6 +142,10 @@ void MainState::initialize() {
 	renderer()->createTexture(_beamsTex);
 
 	_map.initialize();
+	_map.setBg(0, "lvl1_l2.png");
+	_map.setBg(1, "lvl1_l3.png");
+	_map.setBgScroll(0, .4);
+	_map.setBgScroll(1, .7);
 
 	_root = _entities.root();
 	_ship = loadEntity("ship.json");
@@ -263,6 +267,8 @@ void MainState::startGame() {
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
 
+	_levelColor = Vector4(112, 46, 188, 255) / 255.f;
+
 	//FIXME
 	_ship.place(Vector3(4*BLOCK_SIZE, 5*BLOCK_SIZE, 0));
 	_shipHSpeed = 0;
@@ -282,14 +288,19 @@ void MainState::startGame() {
 	_distance = 0;
 	_score    = 0;
 
+	// ad-hoc value to compensate the fact that the baseline is wrong...
+	float tvOff = 8;
 	_scoreText = loadEntity("text.json", _root);
-	_scoreText.place(Vector3(800, 1000, .5));
+	_scoreText.place(Vector3(1000, 1080 - tvOff, 0));
+	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
 
 	_speedText = _scoreText.clone(_root);
-	_speedText.place(Vector3(48, 1000, .5));
+	_speedText.place(Vector3(200, 1080 - tvOff, 0));
+	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
 
 	_distanceText = _scoreText.clone(_root);
-	_distanceText.place(Vector3(48, 32, .5));
+	_distanceText.place(Vector3(200, -tvOff, 0));
+	_texts.get(_distanceText)->setAnchor(Vector2(1, 0));
 
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
@@ -475,6 +486,7 @@ void MainState::updateFrame() {
 	// Rendering
 	Context* glc = renderer()->context();
 
+	glc->clearColor(_levelColor(0), _levelColor(1), _levelColor(2), _levelColor(3));
 	glc->clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
 	_spriteRenderer.beginFrame();
