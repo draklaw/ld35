@@ -3,10 +3,10 @@
     "sprite": {
         "sprite":        "ship.png",
         "h_tiles":       1,
-        "v_tiles":       3,
+        "v_tiles":       6,
         "index":         1,
         "anchor":        [ 0, 0 ],
-        "texture_flags": "bilinear",
+        "texture_flags": "trilinear",
 		"blend":         "alpha"
     }
 }

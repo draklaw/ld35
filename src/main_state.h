@@ -145,6 +145,8 @@ protected:
 	unsigned    _shipShape;
 	std::vector<bool> _partAlive;
 	std::vector<Vector2> _partSpeeds;
+	float       _distance;
+	unsigned    _score;
 
 	// Happenings
 	float collide (unsigned part);
