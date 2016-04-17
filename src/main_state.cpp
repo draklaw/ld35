@@ -430,28 +430,36 @@ float MainState::collide (unsigned part)
 {
 	float dvspeed = 0;
 
-	Vector2 partOffset = Vector2(0,0);
+	Vector2 partCorner = shipPosition(),
+	        partSize   = Vector2(_blockSize,_blockSize); // Buh.
 	if (part < _shipPartCount)
-		partOffset = partPosition(part);
+	{
+		partCorner += partPosition(part);
+		partSize += Vector2(2 * _blockSize,0); // Ick !
+	}
 
-	Vector2 partCorner = shipPosition() + partOffset;
-	Box2 partBox = Box2(partCorner, partCorner + Vector2(_blockSize,_blockSize));
-	float partX = partCorner[0], partY = partCorner[1];
+	partCorner += Vector2(_scrollPos,0);
 
-	unsigned firstBlock = _map.beginIndex((_prevScrollPos + partX) / _blockSize),
-	          lastBlock = _map.beginIndex((_scrollPos + partX) / _blockSize + 2);
+	Box2 partBox = Box2(partCorner, partCorner + partSize);
+
 	float dScroll = _scrollPos - _prevScrollPos;
+
+	unsigned firstBlock = _map.beginIndex((partCorner[0] - dScroll) / _blockSize),
+	          lastBlock = _map.beginIndex(partCorner[0] / _blockSize + 2);
 
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
 	{
 		Box2 hit = _map.hit(partBox, bi, dScroll);
 		float amount = hit.sizes()[1];
 
+		if (hit.isEmpty())
+			continue;
+
 		if (amount > CRASH_THRESHOLD)
 			dvspeed = INFINITY;
 		else if (amount > SCRATCH_THRESHOLD)
 		{
-			if (hit.min()[1] > partY)
+			if (hit.min()[1] > partCorner[1])
 				dvspeed = -amount / BUMP_TIME;
 			else
 				dvspeed = amount / BUMP_TIME;
