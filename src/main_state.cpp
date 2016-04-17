@@ -154,9 +154,6 @@ void MainState::initialize() {
 	_map.setBgScroll(0, .4);
 	_map.setBgScroll(1, .7);
 
-	_root = _entities.root();
-	_ship = loadEntity("ship.json");
-
 	_shipShapes.push_back(Vector2(0,  1));
 	_shipShapes.push_back(Vector2(1,  1));
 	_shipShapes.push_back(Vector2(2,  1));
@@ -274,14 +271,41 @@ void MainState::startGame() {
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
 
-	_levelColor = Vector4(112, 46, 188, 255) / 255.f;
+	_levelColor  = Vector4(112, 46, 188, 255) / 255.f;
+	_levelColor2 = Vector4(0, 1, 1, .5);
+	_beamColor   = _levelColor2;
+	_laserColor  = Vector4(1, 0, 0, .2);
+	_textColor   = Vector4(0, 1, 0, 1);
 
-	//FIXME
+	_root = _entities.root();
+
+	EntityRef hudTop = _entities.createEntity(_root, "hud_top");
+	_sprites.addComponent(hudTop);
+	hudTop.sprite()->setTexture("hud_top.png");
+	hudTop.sprite()->setAnchor(Vector2(0, 1));
+	hudTop.sprite()->setBlendingMode(BLEND_ALPHA);
+	hudTop.place(Vector3(0, 1080, 0));
+
+	EntityRef hudBottom = _entities.createEntity(_root, "hud_bottom");
+	_sprites.addComponent(hudBottom);
+	hudBottom.sprite()->setTexture("hud_bottom.png");
+	hudBottom.sprite()->setAnchor(Vector2(0, 0));
+	hudBottom.sprite()->setBlendingMode(BLEND_ALPHA);
+	hudBottom.place(Vector3(0, 0, 0));
+
+	_ship = loadEntity("ship.json");
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
+	_ship.sprite()->setColor(_levelColor2);
+	_ship.sprite()->setTileIndex(4);
 	_shipHSpeed = 0;
 	_shipVSpeed = 0;
 	_climbCharge = _thrustMaxCharge;
 	_diveCharge  = _thrustMaxCharge;
+
+	EntityRef ship2 = _ship.clone(_ship);
+	ship2.sprite()->setColor(_levelColor);
+	ship2.sprite()->setTileIndex(1);
+	ship2.place(Vector3(0, 0, 0));
 
 	_shipShape = 0;
 	_shipParts.resize(_shipPartCount);
@@ -291,9 +315,15 @@ void MainState::startGame() {
 	{
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
 		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
-		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 0: 3));
+		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 9: 12));
+		_shipParts[i].sprite()->setColor(_levelColor2);
 		Vector2 pos = partExpectedPosition(_shipShape, i);
 		_shipParts[i].place(Vector3(pos[0],pos[1],0));
+
+		EntityRef part2 = _shipParts[i].clone(_shipParts[i]);
+		part2.sprite()->setColor(_levelColor);
+		part2.sprite()->setTileIndex(i + ((i<3)? 0: 3));
+		part2.place(Vector3(0, 0, 0));
 
 		_partAlive[i] = true;
 		_partSpeeds[i] = Vector2(0,0);
@@ -305,16 +335,19 @@ void MainState::startGame() {
 	// ad-hoc value to compensate the fact that the baseline is wrong...
 	float tvOff = 8;
 	_scoreText = loadEntity("text.json", _root);
-	_scoreText.place(Vector3(1000, 1080 - tvOff, 0));
+	_scoreText.place(Vector3(1120, 1070 - tvOff, 0));
 	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
+	_texts.get(_scoreText)->setColor(_textColor);
 
 	_speedText = _scoreText.clone(_root);
-	_speedText.place(Vector3(200, 1080 - tvOff, 0));
+	_speedText.place(Vector3(230, 1070 - tvOff, 0));
 	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
+	_texts.get(_scoreText)->setColor(_textColor);
 
 	_distanceText = _scoreText.clone(_root);
-	_distanceText.place(Vector3(200, -tvOff, 0));
+	_distanceText.place(Vector3(230, -tvOff, 0));
 	_texts.get(_distanceText)->setAnchor(Vector2(1, 0));
+	_texts.get(_scoreText)->setColor(_textColor);
 
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
@@ -598,10 +631,7 @@ void MainState::renderBeams(float interp) {
 	Vector2 mid = mid4.head<2>();
 	Vector2 laserOffset(1920, 0);
 
-	Vector4 laserColor(1, 0, 0, 1);
-	Vector4 beamsColor(0, .5, 1, 1);
-
-	renderBeam(wt, tex, mid, mid + laserOffset, laserColor, 0, 0, 2);
+	renderBeam(wt, tex, mid, mid + laserOffset, _laserColor, 0, 0, 2);
 	Vector2 shipPos[3];
 	for(int i = 0; i < 3; ++i) {
 		shipPos[i] = (wt * (mid4 + Vector4(_blockSize * i, 0, 0, 0))).head<2>();
@@ -610,11 +640,12 @@ void MainState::renderBeams(float interp) {
 		Matrix4 wt = lerp(interp,
 		                  _shipParts[i]._get()->prevWorldTransform.matrix(),
 		                  _shipParts[i]._get()->worldTransform.matrix());
-		renderBeam(wt, tex, mid, mid + laserOffset, laserColor, 0, 0, 2);
+		renderBeam(wt, tex, mid, mid + laserOffset, _laserColor, 0, 0, 2);
 
-		Vector2 partPos = (wt * mid4).head<2>();
+		Vector4 pp(.25 * _blockSize, ((i < 3)? .25: .75) * _blockSize, 0, 1);
+		Vector2 partPos = (wt * pp).head<2>();
 		float advance = float(_loop.frameTime()) / float(ONE_SEC) + i * .1;
-		renderBeam(Matrix4::Identity(), tex, shipPos[i%3], partPos, beamsColor,
+		renderBeam(Matrix4::Identity(), tex, shipPos[i%3], partPos, _beamColor,
 		           advance, 1, 2);
 	}
 }
