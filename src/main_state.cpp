@@ -50,6 +50,7 @@
  * When bumping against a wall, the player will be ejected within two frames.
  *
  * Parts are lost when going further away (by >1 block) than the farthest part.
+ * The mass ratio ponderates the drag feedback from the parts.
  */
 
 #define POWER_MAX     ( BLOCK_SIZE / 8.0f )
@@ -65,6 +66,7 @@
 #define BUMP_TIME ( 2.0f )
 
 #define SNAP_DISTANCE ( BLOCK_SIZE * 7.0f )
+#define MASS_RATIO ( 8.0f )
 
 MainState::MainState(Game* game)
 	: GameState(game),
@@ -323,26 +325,6 @@ void MainState::updateTick() {
 	if(_prevShapeInput->justPressed()) { --_shipShape; }
 	_shipShape = std::max(0, std::min(int(shipShapeCount()) - 1, int(_shipShape)));
 
-	// Gathering parts
-	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-	{
-		Vector2 origin = partPosition(i),
-		   destination = partPos(_shipShape, i);
-		Vector2 gap = destination - origin;
-
-		if (gap[1] > SNAP_DISTANCE)
-		{
-			dbgLogger.warning("Oh, snap !");
-			destroyPart(i);
-		}
-
-		float dist = gap.norm();
-		if (dist > _partSpeed)
-			gap *= _partSpeed / dist;
-
-		_partSpeeds[i] = gap;
-	}
-
 	// Horizontal control and physics.
 	if (_accelerateInput->isPressed()) {
 		float damping = (1 + _shipHSpeed / _speedDamping);
@@ -355,8 +337,34 @@ void MainState::updateTick() {
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * _speedFactor * tickDur;
 
+	// Gathering parts
+	float magDrag = 0;
+	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+	{
+		Vector2 origin = partPosition(i),
+		   destination = partPos(_shipShape, i);
+		Vector2 gap = destination - origin;
+
+		if (gap[1] > SNAP_DISTANCE)
+		{
+			dbgLogger.warning("Oh, snap !");
+			destroyPart(i);
+		}
+		else
+			magDrag += gap[1];
+
+		float dist = gap.norm();
+		if (dist > _partSpeed)
+			gap *= _partSpeed / dist;
+
+		_partSpeeds[i] = gap;
+	}
+
 	// Vertical speed control and physics.
 	float& vspeed = _shipVSpeed;
+
+	// In Soviet Russia, parts gather you !
+	vspeed += -magDrag / MASS_RATIO;
 
 	// Recharging thrusters.
 	_climbPower = std::min(_climbPower + POWER_BUILDUP, POWER_MAX);
@@ -417,6 +425,7 @@ void MainState::updateTick() {
 	shipPosition()[1] += vspeed;
 	for (unsigned i = 0 ; i < _shipPartCount ; i++)
 		partPosition(i) += _partSpeeds[i];
+
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
