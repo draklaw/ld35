@@ -62,7 +62,7 @@ public:
 	Game* game();
 
 	unsigned shipShapeCount() const;
-	Vector2 partPos(unsigned shape, unsigned part) const;
+	Vector2 partExpectedPosition(unsigned shape, unsigned part) const;
 
 	void startGame();
 	void updateTick();
@@ -97,62 +97,80 @@ protected:
 
 	OrthographicCamera _camera;
 
-	bool        _initialized;
-	bool        _running;
-	InterpLoop  _loop;
-	int64       _fpsTime;
-	unsigned    _fpsCount;
+	bool       _initialized;
+	bool       _running;
+	InterpLoop _loop;
+	int64      _fpsTime;
+	unsigned   _fpsCount;
 
-	Input*      _quitInput;
-	Input*      _accelerateInput;
-	Input*      _slowDownInput;
-	Input*      _thrustUpInput;
-	Input*      _thrustDownInput;
-	Input*      _nextShapeInput;
-	Input*      _prevShapeInput;
+	Input* _quitInput;
+	Input* _accelInput;
+	Input* _brakeInput;
+	Input* _climbInput;
+	Input* _diveInput;
+	Input* _stretchInput;
+	Input* _shrinkInput;
 
-	AssetSP     _beamsTex;
+	AssetSP _beamsTex;
 
-	EntityRef   _root;
-	EntityRef   _ship;
+	EntityRef    _root;
+	EntityRef    _scoreText;
+	EntityRef    _speedText;
+	EntityRef    _distanceText;
+	EntityRef    _ship;
 	EntityVector _shipParts;
-	EntityRef   _scoreText;
-	EntityRef   _speedText;
-	EntityRef   _distanceText;
 
-	Map         _map;
-
-	// Constant params
-	float       _blockSize;
-	float       _speedFactor;
-	float       _acceleration;
-	float       _speedDamping;
-	float       _slowDown;
-	unsigned    _shipPartCount;
-	float       _partSpeed;
-	std::vector<Vector2> _shipShapes;
+	Map _map;
 
 	// Game states
-	Vec2        shipPosition();
-	Vec2        partPosition(unsigned part);
+	Vec2 shipPosition();
+	Vec2 partPosition(unsigned part);
 
 	float       _prevScrollPos;
 	float       _scrollPos;
-	float       _shipHSpeed;
-	float       _shipVSpeed;
-	float       _climbPower;
-	float       _divePower;
-	unsigned    _shipShape;
-	std::vector<bool> _partAlive;
-	std::vector<Vector2> _partSpeeds;
 	float       _distance;
 	unsigned    _score;
 	Vector4     _levelColor;
 
+	float       _shipHSpeed;
+	float       _shipVSpeed;
+	float       _climbCharge;
+	float       _diveCharge;
+
+	std::vector<Vector2> _partSpeeds;
+	std::vector<bool>    _partAlive;
+	unsigned             _shipShape;
+
 	// Happenings
-	float collide (unsigned part);
-	void  collect (unsigned part);
+	float collide     (unsigned part);
+	void  collect     (unsigned part);
 	void  destroyPart (unsigned part);
+
+	// Constant params
+	std::vector<Vector2> _shipShapes;
+	unsigned _shipPartCount;
+
+	float _blockSize;
+
+	float _hSpeedDamping;
+	float _acceleration;
+	float _braking;
+
+	float _thrustMaxCharge;
+	float _thrustRateCharge;
+	float _thrustPower;
+
+	float _vSpeedDamping;
+	float _vSpeedFloor;
+	float _vSpeedCap;
+
+	float _scratchThreshold;
+	float _crashThreshold;
+	float _bumpawayTime;
+
+	float _partBaseSpeed;
+	float _snapDistance;
+	float _massRatio;
 };
 
 
