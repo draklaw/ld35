@@ -30,43 +30,13 @@
 
 #define ONE_SEC (1000000000)
 
+//FIXME?
+#define SCREEN_HEIGHT 1080
+
+#define BUFSIZE 128
 
 #define FRAMERATE 60
 
-#define BLOCK_SIZE 48
-
-/*
- * One full tap instantly reaches 1/8 of a block.
- * Tap power is restored over half a second.
- *
- * Falloff is a factor (about .5~.9) to let vertical speed decrease over time.
- * - Below .5, one tap does not reach one block ; above .8 it may jump two.
- * Thrust is the base climb/dive power ; worth one tap every 1/6th second.
- * Below min speed (0.5 block/s), the ship halts and snaps to grid.
- * The ship should never go above max speed (0.5 block/f) for safety reasons.
- *
- * Collisions above scratch threshold will bump the player.
- * Collisions above crash threshold will kill the player.
- * When bumping against a wall, the player will be ejected within two frames.
- *
- * Parts are lost when going further away (by >1 block) than the farthest part.
- * The mass ratio ponderates the drag feedback from the parts.
- */
-
-#define POWER_MAX     ( BLOCK_SIZE / 8.0f )
-#define POWER_BUILDUP ( POWER_MAX * 2.0f / FRAMERATE )
-
-#define VSPEED_FALLOFF ( 0.8f )
-#define VSPEED_THRUST  ( POWER_MAX / 10.0f )
-#define VSPEED_MIN     ( BLOCK_SIZE *  0.5f / FRAMERATE )
-#define VSPEED_MAX     ( BLOCK_SIZE / 2.0f )
-
-#define SCRATCH_THRESHOLD ( BLOCK_SIZE / 4.0f )
-#define CRASH_THRESHOLD   ( BLOCK_SIZE / 2.0f )
-#define BUMP_TIME ( 2.0f )
-
-#define SNAP_DISTANCE ( BLOCK_SIZE * 7.0f )
-#define MASS_RATIO ( 8.0f )
 
 MainState::MainState(Game* game)
 	: GameState(game),
@@ -86,24 +56,57 @@ MainState::MainState(Game* game)
       _fpsTime(0),
       _fpsCount(0),
 
-      _quitInput      (nullptr),
-      _accelerateInput(nullptr),
-      _slowDownInput  (nullptr),
-      _thrustUpInput  (nullptr),
-      _thrustDownInput(nullptr),
-      _nextShapeInput (nullptr),
-      _prevShapeInput (nullptr),
+      _quitInput    (nullptr),
+      _accelInput   (nullptr),
+      _brakeInput   (nullptr),
+      _climbInput   (nullptr),
+      _diveInput    (nullptr),
+      _stretchInput (nullptr),
+      _shrinkInput  (nullptr),
 
       _map(this),
 
-      _blockSize    (BLOCK_SIZE),
-      _speedFactor  (1),
-      _acceleration (100),
-      _speedDamping (250),
-      _slowDown     (100),
       _shipPartCount(6),
-      _partSpeed    (12) {
+      _blockSize    (48),
 
+      _hSpeedDamping(250),
+      _acceleration (100),
+      _braking      (100),
+
+/* One full-charge tap up or down will instantly reach 1/8 of a block.
+ * - This is about enough for a "human" tap at 60FPS to move one block away.
+ * Tap power is restored over half a second.
+ * Thrust is the base climb/dive power ; worth one tap every 1/6th second.
+ */
+      _thrustMaxCharge  (_blockSize / 8),
+      _thrustRateCharge (2 * _thrustMaxCharge / FRAMERATE),
+      _thrustPower      (_thrustMaxCharge / 10),
+
+/* Damping is a factor (about .5~.9) to let vertical speed decrease over time.
+ * - Below .5, one tap does not reach one block ; above .8 it may jump two.
+ * Below min speed (0.2 block/s), the ship halts and snaps to grid.
+ * The ship should never go above max speed (0.5 block/f) for safety reasons.
+ */
+      _vSpeedDamping (0.8),
+      _vSpeedFloor   (0.2 * _blockSize / FRAMERATE),
+      _vSpeedCap     (_blockSize / 2),
+
+/* Collisions above scratch threshold will bump the player.
+ * Collisions above crash threshold will kill the player.
+ * When bumping against a wall, the player will be ejected within two frames.
+ */
+      _scratchThreshold (_blockSize / 4),
+      _crashThreshold   (_blockSize / 2),
+      _bumpawayTime     (2),
+
+/* Parts move at a top rate of 1/4 block per frame.
+ * Parts are lost when going further away (by 1 block) than the farthest part.
+ * The mass ratio reduces the drag feedback from the parts.
+ */
+      _partBaseSpeed (_blockSize / 4),
+      _snapDistance  (_blockSize * (6+1)),
+      _massRatio     (1.0/8)
+{
 	_entities.registerComponentManager(&_sprites);
 	_entities.registerComponentManager(&_texts);
 }
@@ -118,29 +121,29 @@ void MainState::initialize() {
 	renderer()->context()->setLogCalls(false);
 
 	_loop.reset();
-	_loop.setTickDuration(    ONE_SEC /  60);
-	_loop.setFrameDuration(   ONE_SEC /  60);
+	_loop.setTickDuration(  ONE_SEC / 60);
+	_loop.setFrameDuration( ONE_SEC / 60);
 	_loop.setMaxFrameDuration(_loop.frameDuration() * 3);
 	_loop.setFrameMargin(     _loop.frameDuration() / 2);
 
 	window()->onResize.connect(std::bind(&MainState::resizeEvent, this))
 	        .track(_slotTracker);
 
-	_quitInput       = _inputs.addInput("quit");
-	_accelerateInput = _inputs.addInput("accel");
-	_slowDownInput   = _inputs.addInput("brake");
-	_thrustUpInput   = _inputs.addInput("climb");
-	_thrustDownInput = _inputs.addInput("dive");
-	_nextShapeInput  = _inputs.addInput("next_shape");
-	_prevShapeInput  = _inputs.addInput("prev_shape");
+	_quitInput    = _inputs.addInput("quit");
+	_accelInput   = _inputs.addInput("accel");
+	_brakeInput   = _inputs.addInput("brake");
+	_climbInput   = _inputs.addInput("climb");
+	_diveInput    = _inputs.addInput("dive");
+	_stretchInput = _inputs.addInput("stretch");
+	_shrinkInput  = _inputs.addInput("shrink");
 
-	_inputs.mapScanCode(_quitInput,       SDL_SCANCODE_ESCAPE);
-	_inputs.mapScanCode(_accelerateInput, SDL_SCANCODE_RIGHT);
-	_inputs.mapScanCode(_slowDownInput,   SDL_SCANCODE_LEFT);
-	_inputs.mapScanCode(_thrustUpInput,   SDL_SCANCODE_UP);
-	_inputs.mapScanCode(_thrustDownInput, SDL_SCANCODE_DOWN);
-	_inputs.mapScanCode(_nextShapeInput,  SDL_SCANCODE_X);
-	_inputs.mapScanCode(_prevShapeInput,  SDL_SCANCODE_Z);
+	_inputs.mapScanCode(_quitInput,    SDL_SCANCODE_ESCAPE);
+	_inputs.mapScanCode(_accelInput,   SDL_SCANCODE_RIGHT);
+	_inputs.mapScanCode(_brakeInput,   SDL_SCANCODE_LEFT);
+	_inputs.mapScanCode(_climbInput,   SDL_SCANCODE_UP);
+	_inputs.mapScanCode(_diveInput,    SDL_SCANCODE_DOWN);
+	_inputs.mapScanCode(_stretchInput, SDL_SCANCODE_X);
+	_inputs.mapScanCode(_shrinkInput,  SDL_SCANCODE_Z);
 
 	_beamsTex = loader()->loadAsset<ImageLoader>("beams.png");
 	renderer()->createTexture(_beamsTex);
@@ -256,7 +259,7 @@ unsigned MainState::shipShapeCount() const {
 }
 
 
-Vector2 MainState::partPos(unsigned shape, unsigned part) const {
+Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 	unsigned index = shape * _shipPartCount + part;
 	assert(index < _shipShapes.size());
 	return _shipShapes[index] * _blockSize;
@@ -268,22 +271,22 @@ void MainState::startGame() {
 	_prevScrollPos = _scrollPos;
 
 	//FIXME
-	_ship.place(Vector3(4*BLOCK_SIZE, 5*BLOCK_SIZE, 0));
+	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_shipHSpeed = 0;
 	_shipVSpeed = 0;
-	_climbPower = POWER_MAX;
-	_divePower  = POWER_MAX;
+	_climbCharge = _thrustMaxCharge;
+	_diveCharge  = _thrustMaxCharge;
 
 	_shipShape = 0;
 	_shipParts.resize(_shipPartCount);
 	_partAlive.resize(_shipPartCount);
 	_partSpeeds.resize(_shipPartCount);
-	for(int i = 0; i < _shipPartCount; ++i)
+	for (int i = 0 ; i < _shipPartCount ; ++i)
 	{
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
 		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
 		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 0: 3));
-		Vector2 pos = partPos(_shipShape, i);
+		Vector2 pos = partExpectedPosition(_shipShape, i);
 		_shipParts[i].place(Vector3(pos[0],pos[1],0));
 
 		_partAlive[i] = true;
@@ -315,40 +318,39 @@ void MainState::startGame() {
 void MainState::updateTick() {
 	_inputs.sync();
 
-	if(_quitInput->justPressed()) {
+	if(_quitInput->justPressed())
 		quit();
-	}
 
 	// Gameplay
 	double time    = double(_loop.frameTime()) / double(ONE_SEC);
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
 	// Shapeshift !
-	if(_nextShapeInput->justPressed()) { ++_shipShape; }
-	if(_prevShapeInput->justPressed()) { --_shipShape; }
+	if(_stretchInput->justPressed()) { ++_shipShape; }
+	if(_shrinkInput->justPressed()) { --_shipShape; }
 	_shipShape = std::max(0, std::min(int(shipShapeCount()) - 1, int(_shipShape)));
 
 	// Horizontal control and physics.
-	if (_accelerateInput->isPressed()) {
-		float damping = (1 + _shipHSpeed / _speedDamping);
+	if (_accelInput->isPressed()) {
+		float damping = (1 + _shipHSpeed / _hSpeedDamping);
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
-	if (_slowDownInput->isPressed()) {
-		_shipHSpeed -= _slowDown;
+	if (_brakeInput->isPressed()) {
+		_shipHSpeed -= _braking;
 	}
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
-	_scrollPos += _shipHSpeed * _speedFactor * tickDur;
+	_scrollPos += _shipHSpeed * tickDur;
 
 	// Gathering parts
 	float magDrag = 0;
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 	{
 		Vector2 origin = partPosition(i),
-		   destination = partPos(_shipShape, i);
+		   destination = partExpectedPosition(_shipShape, i);
 		Vector2 gap = destination - origin;
 
-		if (gap[1] > SNAP_DISTANCE)
+		if (gap[1] > _snapDistance)
 		{
 			dbgLogger.warning("Oh, snap !");
 			destroyPart(i);
@@ -357,8 +359,8 @@ void MainState::updateTick() {
 			magDrag += gap[1];
 
 		float dist = gap.norm();
-		if (dist > _partSpeed)
-			gap *= _partSpeed / dist;
+		if (dist > _partBaseSpeed)
+			gap *= _partBaseSpeed / dist;
 
 		_partSpeeds[i] = gap;
 	}
@@ -367,40 +369,40 @@ void MainState::updateTick() {
 	float& vspeed = _shipVSpeed;
 
 	// In Soviet Russia, parts gather you !
-	vspeed += -magDrag / MASS_RATIO;
+	vspeed += -magDrag * _massRatio;
 
 	// Recharging thrusters.
-	_climbPower = std::min(_climbPower + POWER_BUILDUP, POWER_MAX);
-	_divePower  = std::min(_divePower  + POWER_BUILDUP, POWER_MAX);
+	_climbCharge = std::min(_climbCharge + _thrustRateCharge, _thrustMaxCharge);
+	_diveCharge  = std::min(_diveCharge  + _thrustRateCharge, _thrustMaxCharge);
 
 	// Activating thrusters.
-	if (_thrustUpInput->justPressed()) {
-		vspeed += _climbPower;
-		_climbPower = 0.f;
+	if (_climbInput->justPressed()) {
+		vspeed += _climbCharge;
+		_climbCharge = 0;
 	}
-	if (_thrustDownInput->justPressed()) {
-		vspeed -= _divePower;
-		_divePower = 0.f;
+	if (_diveInput->justPressed()) {
+		vspeed -= _diveCharge;
+		_diveCharge = 0;
 	}
-	if (_thrustUpInput->isPressed())   { vspeed += VSPEED_THRUST; }
-	if (_thrustDownInput->isPressed()) { vspeed -= VSPEED_THRUST; }
+	if (_climbInput->isPressed()) { vspeed += _thrustPower; }
+	if (_diveInput->isPressed())  { vspeed -= _thrustPower; }
 
 	// Automatic vertical slowdown.
-	if ( !(_thrustUpInput->isPressed() || _thrustDownInput->isPressed()) )
-		vspeed *= VSPEED_FALLOFF;
+	if ( !(_climbInput->isPressed() || _diveInput->isPressed()) )
+		vspeed *= _vSpeedDamping;
 
 	// Clamping/locking vertical speed.
-	if (std::abs(vspeed) > VSPEED_MAX)
-		vspeed = std::min(std::max(vspeed, -VSPEED_MAX), VSPEED_MAX);
+	if (std::abs(vspeed) > _vSpeedCap)
+		vspeed = std::min(std::max(vspeed, -_vSpeedCap), _vSpeedCap);
 
-	if (std::abs(vspeed) < VSPEED_MIN)
-		vspeed = 0.f;
+	if (std::abs(vspeed) < _vSpeedFloor)
+		vspeed = 0;
 
 	// Bouncing (or crashing) on walls.
 	float bump = collide(_shipPartCount);
 	if (bump == INFINITY)
 		dbgLogger.error("u ded. 'sploded hed");
-	else if (bump != 0.f)
+	else if (bump != 0)
 		vspeed = bump;
 
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
@@ -408,7 +410,7 @@ void MainState::updateTick() {
 		bump = collide(i);
 		if (bump == INFINITY)
 			destroyPart(i);
-		else if (bump != 0.f)
+		else if (bump != 0)
 			_partSpeeds[i] = Vector2(_partSpeeds[i][0],bump);
 	}
 
@@ -422,7 +424,7 @@ void MainState::updateTick() {
 	{
 		float delta = std::fmod(shipPosition()[1],_blockSize);
 		if (delta > 1)
-			vspeed = delta / FRAMERATE * (delta > _blockSize/2.0?1:-1);
+			vspeed = (delta > _blockSize/2?1:-1) * delta / FRAMERATE;
 	}
 
 	shipPosition()[1] += vspeed;
@@ -467,14 +469,14 @@ float MainState::collide (unsigned part)
 		if (hit.isEmpty())
 			continue;
 
-		if (amount > CRASH_THRESHOLD)
+		if (amount > _crashThreshold)
 			dvspeed = INFINITY;
-		else if (amount > SCRATCH_THRESHOLD)
+		else if (amount > _scratchThreshold)
 		{
 			if (hit.min()[1] > partCorner[1])
-				dvspeed = -amount / BUMP_TIME;
+				dvspeed = -amount / _bumpawayTime;
 			else
-				dvspeed = amount / BUMP_TIME;
+				dvspeed = amount / _bumpawayTime;
 		}
 	}
 
@@ -499,15 +501,15 @@ void MainState::destroyPart (unsigned part)
 
 void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
-	char buff[128];
+	char buff[BUFSIZE];
 
-	snprintf(buff, 128, "%.0f km/h", _shipHSpeed);
+	snprintf(buff, BUFSIZE, "%.0f km/h", _shipHSpeed);
 	_texts.get(_speedText)->setText(buff);
 
-	snprintf(buff, 128, "%.0f km", _distance);
+	snprintf(buff, BUFSIZE, "%.0f km", _distance);
 	_texts.get(_distanceText)->setText(buff);
 
-	snprintf(buff, 128, "%d", _score);
+	snprintf(buff, BUFSIZE, "%d", _score);
 	_texts.get(_scoreText)->setText(buff);
 
 	// Rendering
@@ -532,7 +534,7 @@ void MainState::updateFrame() {
 
 	uint64 now = sys()->getTimeNs();
 	++_fpsCount;
-	if(_fpsCount == 60) {
+	if(_fpsCount == FRAMERATE) {
 		log().info("Fps: ", _fpsCount * float(ONE_SEC) / (now - _fpsTime));
 		_fpsTime  = now;
 		_fpsCount = 0;
