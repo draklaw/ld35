@@ -41,7 +41,9 @@ class Map {
 public:
 	enum BlockType {
 		WALL,
-		POINT
+		POINT,
+
+		PREVIEW_OFFSET = 12,
 	};
 
 public:
@@ -63,6 +65,7 @@ public:
 	              float variance=.3);
 
 	void render(float scroll);
+	void renderPreview(float scroll, float pDist, float screenWidth, float pWidth);
 
 private:
 	struct Block {
@@ -80,8 +83,11 @@ private:
 
 	TextureAspectSP _bgTex;
 	TextureAspectSP _tilesTex;
+	unsigned        _hTiles;
+	unsigned        _vTiles;
 
 	SectionVector   _sections;
+	unsigned        _nRows;
 
 	int             _length;
 	BlockVector     _blocks;

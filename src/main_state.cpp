@@ -383,10 +383,10 @@ void MainState::updateTick() {
 	{
 		Box2 hit = _map.hit(shipBox,bi, dScroll);
 		float amount = hit.sizes()[1];
-		if (amount > CRASH_THRESHOLD)
-			dbgLogger.error("u ded. 'sploded hed.");
-		else if (amount > SCRATCH_THRESHOLD)
-		{
+		if (amount > CRASH_THRESHOLD) {
+//			dbgLogger.error("u ded. 'sploded hed.");
+		}
+		else if (amount > SCRATCH_THRESHOLD) {
 			if (hit.min()[1] > shipY) // Above
 				vspeed = -amount / BUMP_TIME;
 			else // Below
@@ -422,8 +422,11 @@ void MainState::updateFrame() {
 
 	_spriteRenderer.beginFrame();
 
-	_map.render(lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos));
+	float scroll = lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos);
+	float screenWidth = window()->width() * 1080. / window()->height();
+	_map.render(scroll);
 	_sprites.render(_loop.frameInterp(), _camera);
+	_map.renderPreview(scroll, 50*_blockSize, screenWidth, 70);
 	_texts.render(_loop.frameInterp());
 
 	_spriteRenderer.endFrame(_camera.transform());
