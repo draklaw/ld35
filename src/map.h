@@ -56,7 +56,8 @@ public:
 	Box2 blockBox(int i) const;
 
 	Box2 hit(const Box2& box, int bi, float dScroll) const;
-	bool pickup(const Box2& box, int bi, float dScroll);
+	Box2 pickup(const Box2& box, int bi, float dScroll);
+	void clearBlock(int bi);
 
 	void initialize();
 	void registerSection(const Path& path);
