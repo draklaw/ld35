@@ -40,6 +40,7 @@ void Game::initialize() {
 	GameBase::initialize();
 
 	window()->setUtf8Title("Lair - Shapeout");
+//	window()->resize(1920 / 4, 1080 / 4);
 
 	_splashState.reset(new SplashState(this));
 	_mainState.reset(new MainState(this));
