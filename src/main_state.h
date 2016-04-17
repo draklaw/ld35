@@ -130,6 +130,7 @@ protected:
 	// Game states
 	Vec2 shipPosition();
 	Vec2 partPosition(unsigned part);
+	Box2 partBox (unsigned part);
 
 	float       _prevScrollPos;
 	float       _scrollPos;
@@ -181,6 +182,7 @@ protected:
 	float _bumpawayTime;
 
 	float _partBaseSpeed;
+	float _partDropSpeed;
 	float _snapDistance;
 	float _massRatio;
 };
