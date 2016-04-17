@@ -206,7 +206,7 @@ void MainState::initialize() {
 	_shipShapes.push_back(Vector2(-1, -4));
 	_shipShapes.push_back(Vector2( 1, -2));
 
-	loader()->load<SoundLoader>("sound.ogg");
+	_shipSound = loader()->loadAsset<SoundLoader>("engine0.wav");
 	//loader()->load<MusicLoader>("music.ogg");
 
 	loader()->waitAll();
@@ -249,6 +249,7 @@ void MainState::run() {
 
 
 void MainState::quit() {
+	Mix_UnregisterAllEffects(MIX_CHANNEL_POST);
 	_running = false;
 }
 
@@ -279,6 +280,8 @@ void MainState::startGame() {
 	_beamColor   = _levelColor2;
 	_laserColor  = Vector4(1, 0, 0, .2);
 	_textColor   = Vector4(0, 1, 0, 1);
+
+	_shipSoundSample = 0;
 
 	_root = _entities.root();
 
@@ -356,7 +359,8 @@ void MainState::startGame() {
 	// Need map images to be loaded.
 	_map.generate(0, 300, .5, 1);
 
-	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
+//	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
+//	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);
 }
 
 
@@ -711,6 +715,34 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 	}
 
 	return _entities.createEntityFromJson(parent, json, localPath.dir());
+}
+
+
+void shipSoundCb(int /*chan*/, void *stream, int len, void *udata) {
+	MainState* state = static_cast<MainState*>(udata);
+
+	AssetSP asset = state->_shipSound.lock();
+	if(!asset) return;
+	SoundAspectSP aspect = asset->aspect<SoundAspect>();
+	if(!aspect) return;
+	const SoundSP snd = aspect->get();
+	if(!snd) return;
+	const Mix_Chunk* chunk = snd->chunk();
+
+	float speed = 1 - std::exp(-state->_shipHSpeed / 1000);
+	int max = (chunk->alen - len) / 2;
+	int sample = std::max(0, std::min(int(speed * max), max));
+	int16* dst = reinterpret_cast<int16*>(stream);
+	int16* src1 = reinterpret_cast<int16*>(chunk->abuf) + state->_shipSoundSample;
+	int16* src2 = reinterpret_cast<int16*>(chunk->abuf) + sample;
+	dbgLogger.error("sample: ", sample, ", ", state->_shipSoundSample, ", ",
+	                speed, ", ", max);
+	for(int i = 0; i < len; ++i) {
+		dst[i] = std::max(std::numeric_limits<int16>::min(),
+		                  std::min(std::numeric_limits<int16>::max(),
+		                           lerp(float(i) / float(len), src1[i], src2[i])));
+	}
+	state->_shipSoundSample = sample;
 }
 
 

@@ -48,6 +48,8 @@ typedef decltype(Transform().translation().head<2>()) Vec2;
 
 typedef std::vector<EntityRef> EntityVector;
 
+void shipSoundCb(int chan, void *stream, int len, void *udata);
+
 class MainState : public GameState {
 public:
 	MainState(Game* game);
@@ -82,6 +84,9 @@ public:
 	const Matrix4& screenTransform() const { return _root.transform().matrix(); }
 
 	SpriteRenderer* spriteRenderer() { return &_spriteRenderer; }
+
+	// Callback to play ship soudn
+	friend void shipSoundCb(int chan, void *stream, int len, void *udata);
 
 protected:
 	// More or less system stuff
@@ -140,6 +145,9 @@ protected:
 	float       _shipVSpeed;
 	float       _climbCharge;
 	float       _diveCharge;
+
+	AssetWP     _shipSound;
+	int         _shipSoundSample;
 
 	std::vector<bool>    _partAlive;
 	unsigned             _shipShape;
