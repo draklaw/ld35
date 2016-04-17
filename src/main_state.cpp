@@ -42,13 +42,14 @@
  * Falloff is a factor (about .5~.9) to let vertical speed decrease over time.
  * - Below .5, one tap does not reach one block ; above .8 it may jump two.
  * Thrust is the base climb/dive power ; worth one tap every 1/6th second.
- * Below min speed (0.5 bloc/s), the ship halts and snaps to grid.
+ * Below min speed (0.5 block/s), the ship halts and snaps to grid.
  * The ship should never go above max speed (0.5 block/f) for safety reasons.
  *
  * Collisions above scratch threshold will bump the player.
  * Collisions above crash threshold will kill the player.
- *
  * When bumping against a wall, the player will be ejected within two frames.
+ *
+ * Parts are lost when going further away (by >1 block) than the farthest part.
  */
 
 #define POWER_MAX     ( BLOCK_SIZE / 8.0f )
@@ -61,8 +62,9 @@
 
 #define SCRATCH_THRESHOLD ( BLOCK_SIZE / 4.0f )
 #define CRASH_THRESHOLD   ( BLOCK_SIZE / 2.0f )
-
 #define BUMP_TIME ( 2.0f )
+
+#define SNAP_DISTANCE ( BLOCK_SIZE * 7.0f )
 
 MainState::MainState(Game* game)
 	: GameState(game),
@@ -249,10 +251,10 @@ unsigned MainState::shipShapeCount() const {
 }
 
 
-Vector3 MainState::partPos(unsigned shape, unsigned part) const {
+Vector2 MainState::partPos(unsigned shape, unsigned part) const {
 	unsigned index = shape * _shipPartCount + part;
 	assert(index < _shipShapes.size());
-	return (Vector3() << _shipShapes[index], 0).finished() * _blockSize;
+	return _shipShapes[index] * _blockSize;
 }
 
 
@@ -269,11 +271,18 @@ void MainState::startGame() {
 
 	_shipShape = 0;
 	_shipParts.resize(_shipPartCount);
-	for(int i = 0; i < _shipPartCount; ++i) {
+	_partAlive.resize(_shipPartCount);
+	_partSpeeds.resize(_shipPartCount);
+	for(int i = 0; i < _shipPartCount; ++i)
+	{
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
 		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 3));
 		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 0: 3));
-		_shipParts[i].place(partPos(_shipShape, i));
+		Vector2 pos = partPos(_shipShape, i);
+		_shipParts[i].place(Vector3(pos[0],pos[1],0));
+
+		_partAlive[i] = true;
+		_partSpeeds[i] = Vector2(0,0);
 	}
 
 	_scoreText = loadEntity("text.json", _root);
@@ -310,89 +319,94 @@ void MainState::updateTick() {
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
 	// Shapeshift !
-	if(_nextShapeInput->justPressed()) {
-		++_shipShape;
-	}
-	if(_prevShapeInput->justPressed()) {
-		--_shipShape;
-	}
+	if(_nextShapeInput->justPressed()) { ++_shipShape; }
+	if(_prevShapeInput->justPressed()) { --_shipShape; }
 	_shipShape = std::max(0, std::min(int(shipShapeCount()) - 1, int(_shipShape)));
 
-	for(int i = 0; i < _shipPartCount; ++i) {
-		Vector3 p = _shipParts[i].transform().translation();
-		Vector3 q = partPos(_shipShape, i);
-		Vector3 v = q - p;
-		float dist = v.norm();
-		if(dist > _partSpeed) {
-			v *= _partSpeed / dist;
+	// Gathering parts
+	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+	{
+		Vector2 origin = partPosition(i),
+		   destination = partPos(_shipShape, i);
+		Vector2 gap = destination - origin;
+
+		if (gap[1] > SNAP_DISTANCE)
+		{
+			dbgLogger.warning("Oh, snap !");
+			destroyPart(i);
 		}
-		_shipParts[i].moveTo(p + v);
+
+		float dist = gap.norm();
+		if (dist > _partSpeed)
+			gap *= _partSpeed / dist;
+
+		_partSpeeds[i] = gap;
 	}
 
 	// Horizontal control and physics.
-	if(_accelerateInput->isPressed()) {
+	if (_accelerateInput->isPressed()) {
 		float damping = (1 + _shipHSpeed / _speedDamping);
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
-	if(_slowDownInput->isPressed()) {
+	if (_slowDownInput->isPressed()) {
 		_shipHSpeed -= _slowDown;
 	}
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * _speedFactor * tickDur;
 
-	// Vertical control and physics
+	// Vertical speed control and physics.
 	float& vspeed = _shipVSpeed;
 
-	// > Recharging thrusters.
+	// Recharging thrusters.
 	_climbPower = std::min(_climbPower + POWER_BUILDUP, POWER_MAX);
 	_divePower  = std::min(_divePower  + POWER_BUILDUP, POWER_MAX);
 
-	// > Activating thrusters.
+	// Activating thrusters.
 	if (_thrustUpInput->justPressed()) {
 		vspeed += _climbPower;
-		_climbPower = 0;
+		_climbPower = 0.f;
 	}
 	if (_thrustDownInput->justPressed()) {
 		vspeed -= _divePower;
-		_divePower = 0;
+		_divePower = 0.f;
 	}
 	if (_thrustUpInput->isPressed())   { vspeed += VSPEED_THRUST; }
 	if (_thrustDownInput->isPressed()) { vspeed -= VSPEED_THRUST; }
 
-	// > Automatic slowdown.
+	// Automatic vertical slowdown.
 	if ( !(_thrustUpInput->isPressed() || _thrustDownInput->isPressed()) )
 		vspeed *= VSPEED_FALLOFF;
 
-	// > Locking speed.
+	// Clamping/locking vertical speed.
 	if (std::abs(vspeed) > VSPEED_MAX)
 		vspeed = std::min(std::max(vspeed, -VSPEED_MAX), VSPEED_MAX);
 
 	if (std::abs(vspeed) < VSPEED_MIN)
-		vspeed = 0.0f;
+		vspeed = 0.f;
 
-	// > Bouncing (or crashing) on walls.
-	float bump = collide(_ship);
+	// Bouncing (or crashing) on walls.
+	float bump = collide(_shipPartCount);
 	if (bump == INFINITY)
 		dbgLogger.error("u ded. 'sploded hed");
-	else if (bump != 0)
+	else if (bump != 0.f)
 		vspeed = bump;
-	
+
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 	{
-		bump = collide(_shipParts[i]);
+		bump = collide(i);
 		if (bump == INFINITY)
 			destroyPart(i);
-		else if (bump != 0)
-			vspeed = bump;
+		else if (bump != 0.f)
+			_partSpeeds[i] = Vector2(_partSpeeds[i][0],bump);
 	}
 
-	// > Looting
-	collect (_ship);
+	// Looting
+	collect (_shipPartCount);
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-		collect (_shipParts[i]);
+		collect (i);
 
-	// > Snapping to grid.
+	// Snapping to grid.
 	if (!vspeed)
 	{
 		float delta = std::fmod(shipPosition()[1],_blockSize);
@@ -401,21 +415,26 @@ void MainState::updateTick() {
 	}
 
 	shipPosition()[1] += vspeed;
+	for (unsigned i = 0 ; i < _shipPartCount ; i++)
+		partPosition(i) += _partSpeeds[i];
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
 }
 
 
-float MainState::collide (const EntityRef part)
+// Check a part for collision, and return the strength of the vertical bump.
+// If the bump is INFINITY, the part has crashed.
+// If part == _shipPartCount, check the ship itself.
+float MainState::collide (unsigned part)
 {
 	float dvspeed = 0;
 
-	Vector2 offset = Vector2(0,0);
-	if (part != _ship)
-		offset = part.transform().translation().head<2>();
+	Vector2 partOffset = Vector2(0,0);
+	if (part < _shipPartCount)
+		partOffset = partPosition(part);
 
-	Vector2 partCorner = _ship.transform().translation().head<2>() + offset;
+	Vector2 partCorner = shipPosition() + partOffset;
 	Box2 partBox = Box2(partCorner, partCorner + Vector2(_blockSize,_blockSize));
 	float partX = partCorner[0], partY = partCorner[1];
 
@@ -443,7 +462,7 @@ float MainState::collide (const EntityRef part)
 }
 
 
-void MainState::collect (const EntityRef part)
+void MainState::collect (unsigned part)
 {
 	//TODO
 }
@@ -452,6 +471,8 @@ void MainState::collect (const EntityRef part)
 void MainState::destroyPart (unsigned part)
 {
 	//TODO
+	assert (part < _shipPartCount);
+	//assert (_partAlive[i]);
 	dbgLogger.warning ("Kabooom ! ", part);
 }
 
@@ -517,7 +538,14 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 }
 
 
-Vec3 MainState::shipPosition()
+Vec2 MainState::shipPosition()
 {
-	return _ship.transform().translation();
+	return _ship.transform().translation().head<2>();
+}
+
+
+Vec2 MainState::partPosition(unsigned part)
+{
+	assert (part < _shipPartCount);
+	return _shipParts[part].transform().translation().head<2>();
 }

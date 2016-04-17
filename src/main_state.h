@@ -44,7 +44,7 @@ using namespace lair;
 
 class Game;
 
-typedef Transform::TranslationPart Vec3;
+typedef decltype(Transform().translation().head<2>()) Vec2;
 
 typedef std::vector<EntityRef> EntityVector;
 
@@ -62,7 +62,7 @@ public:
 	Game* game();
 
 	unsigned shipShapeCount() const;
-	Vector3 partPos(unsigned shape, unsigned part) const;
+	Vector2 partPos(unsigned shape, unsigned part) const;
 
 	void startGame();
 	void updateTick();
@@ -124,11 +124,12 @@ protected:
 	float       _speedDamping;
 	float       _slowDown;
 	unsigned    _shipPartCount;
-	std::vector<Vector2> _shipShapes;
 	float       _partSpeed;
+	std::vector<Vector2> _shipShapes;
 
 	// Game states
-	Vec3        shipPosition();
+	Vec2        shipPosition();
+	Vec2        partPosition(unsigned part);
 
 	float       _prevScrollPos;
 	float       _scrollPos;
@@ -137,10 +138,12 @@ protected:
 	float       _climbPower;
 	float       _divePower;
 	unsigned    _shipShape;
+	std::vector<bool> _partAlive;
+	std::vector<Vector2> _partSpeeds;
 
 	// Happenings
-	float collide (const EntityRef part);
-	void  collect (const EntityRef part);
+	float collide (unsigned part);
+	void  collect (unsigned part);
 	void  destroyPart (unsigned part);
 };
 
