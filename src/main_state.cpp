@@ -288,10 +288,11 @@ void MainState::startGame() {
 	_distanceText.place(Vector3(48, 32, .5));
 	_texts.get(_distanceText)->setText("00000 km");
 
-	_map.generate();
-
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
+
+	// Need map images to be loaded.
+	_map.generate(0, 300, .5, 1);
 
 	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
