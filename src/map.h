@@ -41,6 +41,7 @@ class Map {
 public:
 	enum BlockType {
 		WALL,
+		UNUSED,
 		POINT,
 		EMPTY,
 
@@ -68,6 +69,7 @@ public:
 	void generate(unsigned seed, unsigned minLength, float difficulty,
 	              float variance=.3);
 
+	void updateComming(float scroll, float pDist, float screenWidth);
 	void render(float scroll);
 	void renderPreview(float scroll, float pDist, float screenWidth, float pWidth);
 
@@ -81,6 +83,14 @@ private:
 	static bool blockCmp(const Block& b0, const Block& b1);
 
 	typedef std::vector<ImageAspectWP> SectionVector;
+
+	struct Comming {
+		int pindex;
+		int windex;
+		float pdist;
+		float wdist;
+	};
+	typedef std::vector<Comming> CommingVector;
 
 private:
 	MainState*      _state;
@@ -96,6 +106,7 @@ private:
 
 	int             _length;
 	BlockVector     _blocks;
+	CommingVector   _comming;
 };
 
 

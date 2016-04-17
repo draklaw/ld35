@@ -70,8 +70,8 @@ MainState::MainState(Game* game)
       _shipPartCount(6),
       _blockSize    (48),
 
-      _hSpeedDamping(250),
-      _acceleration (100),
+      _hSpeedDamping(500),
+      _acceleration (400),
       _braking      (100),
 
 /* One full-charge tap up or down will instantly reach 1/8 of a block.
@@ -305,7 +305,7 @@ void MainState::startGame() {
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
-	_shipHSpeed = 0;
+	_shipHSpeed = 2000;
 	_shipVSpeed = 0;
 	_climbCharge = _thrustMaxCharge;
 	_diveCharge  = _thrustMaxCharge;
@@ -392,6 +392,7 @@ void MainState::updateTick() {
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * tickDur;
+	_distance  += _shipHSpeed * tickDur;
 
 	// Gathering parts
 	float magDrag = 0;
@@ -574,10 +575,10 @@ void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
 	char buff[BUFSIZE];
 
-	snprintf(buff, BUFSIZE, "%.0f km/h", _shipHSpeed);
+	snprintf(buff, BUFSIZE, "%.0f m/s", _shipHSpeed);
 	_texts.get(_speedText)->setText(buff);
 
-	snprintf(buff, BUFSIZE, "%.0f km", _distance);
+	snprintf(buff, BUFSIZE, "%.0.2f km", _distance/1000);
 	_texts.get(_distanceText)->setText(buff);
 
 	snprintf(buff, BUFSIZE, "%d", _score);
@@ -602,7 +603,7 @@ void MainState::updateFrame() {
 	_map.render(scroll);
 	renderBeams(_loop.frameInterp());
 	_sprites.render(_loop.frameInterp(), _camera);
-	_map.renderPreview(scroll, 50*_blockSize, screenWidth, 70);
+	_map.renderPreview(scroll, _shipHSpeed/100*_blockSize, screenWidth, 70);
 	_texts.render(_loop.frameInterp());
 
 	_spriteRenderer.endFrame(_camera.transform());

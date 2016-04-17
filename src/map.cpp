@@ -92,7 +92,9 @@ void Map::initialize() {
 	AssetSP tilesAsset = _state->loader()->loadAsset<ImageLoader>("tiles.png");
 	_tilesTex = _state->renderer()->createTexture(tilesAsset);
 
-	registerSection("test_map.png");
+	registerSection("segment_1.png");
+	registerSection("segment_2.png");
+	registerSection("segment_3.png");
 }
 
 
@@ -136,14 +138,14 @@ void Map::appendSection(unsigned i) {
 			uint8 g = pixel[1];
 			uint8 b = pixel[2];
 			if(r == 0 && g == 0 && b == 0) {
-				_blocks.push_back(Block{ Vector2i(col, row), WALL });
+				_blocks.push_back(Block{ Vector2i(_length, row), WALL });
 			}
 			if(r == 0 && g == 255 && b == 0) {
-				_blocks.push_back(Block{ Vector2i(col, row), POINT });
+				_blocks.push_back(Block{ Vector2i(_length, row), POINT });
 			}
 		}
+		_length += 2;
 	}
-	_length += img->width();
 }
 
 
@@ -151,21 +153,49 @@ void Map::generate(unsigned seed, unsigned minLength, float difficulty,
                    float variance) {
 	clear();
 
-	unsigned size = _sections.size();
-	unsigned rangeSize = size * variance;
-	unsigned begin = std::max(size - rangeSize, 0u);
-	unsigned end   = std::min(begin + rangeSize, size);
-
-	std::seed_seq seedSeq{ seed };
-	std::mt19937 rEngine(seedSeq);
-	std::uniform_int_distribution<unsigned> rand(begin, end-1);
-
-	while(_length < minLength) {
-		appendSection(rand(rEngine));
+	for(int i = 0; i < _sections.size(); ++i) {
+		appendSection(i);
 	}
+//	unsigned size = _sections.size();
+//	unsigned rangeSize = size * variance;
+//	unsigned begin = std::max(size - rangeSize, 0u);
+//	unsigned end   = std::min(begin + rangeSize, size);
+
+//	std::seed_seq seedSeq{ seed };
+//	std::mt19937 rEngine(seedSeq);
+//	std::uniform_int_distribution<unsigned> rand(begin, end-1);
+
+//	while(_length < minLength) {
+//		appendSection(rand(rEngine));
+//	}
 
 //	std::sort(_blocks.begin(), _blocks.end(), blockCmp);
 }
+
+
+//void Map::updateComming(float scroll, float pDist, float screenWidth) {
+//	float rightScroll = scroll + screenWidth;
+//	unsigned beginCol = beginIndex(rightScroll / _state->blockSize());
+//	unsigned endCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
+
+//	_comming.
+//	for(unsigned row = 0; row < _nRows; ++ row) {
+//		bool gotPoint = false;
+//		for(unsigned i = beginCol; i < endCol; ++i) {
+//			const Block& b = _blocks[i];
+//			if(b.pos(1) == row) {
+//				if(b.type == WALL) {
+//					blocks.push_back(i);
+//					break;
+//				}
+//				if(b.type == POINT && !gotPoint) {
+//					blocks.push_back(i);
+//					gotPoint = true;
+//				}
+//			}
+//		}
+//	}
+//}
 
 
 void Map::render(float scroll) {
@@ -211,7 +241,8 @@ void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWid
 	SpriteRenderer* renderer = _state->spriteRenderer();
 
 	Matrix4 trans = _state->screenTransform();
-	Vector4 color(1, 0, 0, 1);
+	Vector4 colorPoint(.2, 1, .2, 1);
+	Vector4 colorWarning(1, .3, 0, 1);
 	TextureSP tilesTex = _tilesTex->_get();
 	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
 
@@ -244,9 +275,17 @@ void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWid
 						float(ti / _hTiles) / float(_vTiles));
 		Box2 texCoord(tilePos, tilePos + tileSize);
 		Box2 coords = blockBox(i);
+		float scale = ((ti == PREVIEW_OFFSET)? 2: 1.2) - (coords.max()(0) - scroll - screenWidth) / pDist;
+
 		coords.min()(0) = (coords.min()(0) - rightScroll) * pWidth / pDist
 						+ screenWidth - pWidth - _state->blockSize();
 		coords.max()(0) = coords.min()(0) + _state->blockSize();
+
+		Vector2 a(coords.max()(0), (coords.min()(1) + coords.max()(1)) / 2);
+		coords.min() = (coords.min() - a) * scale + a;
+		coords.max() = (coords.max() - a) * scale + a;
+
+		Vector4 color = (ti == PREVIEW_OFFSET)? colorWarning: colorPoint;
 		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
 							Texture::TRILINEAR, BLEND_ALPHA);
 	}
