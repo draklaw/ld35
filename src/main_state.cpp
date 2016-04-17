@@ -103,10 +103,12 @@ MainState::MainState(Game* game)
       _bumpawayTime     (2),
 
 /* Parts move at a top rate of 1/4 block per frame.
+ * Destroyed parts are bumped up then fall offscreen at 1/5 block per frame.
  * Parts are lost when going further away (by 1 block) than the farthest part.
  * The mass ratio reduces the drag feedback from the parts.
  */
       _partBaseSpeed (_blockSize / 4),
+      _partDropSpeed (_blockSize / 3),
       _snapDistance  (_blockSize * (6+1)),
       _massRatio     (1.0/8)
 {
@@ -560,6 +562,7 @@ void MainState::destroyPart (unsigned part)
 	assert (_partAlive[part]);
 
 	_partAlive[part] = false;
+	partPosition(part)[1] += _blockSize;
 }
 
 
@@ -575,6 +578,11 @@ void MainState::updateFrame() {
 
 	snprintf(buff, BUFSIZE, "%d", _score);
 	_texts.get(_scoreText)->setText(buff);
+
+	// Killin' parts !
+	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+		if (!_partAlive[i] && partPosition(i)[1] > -SCREEN_HEIGHT)
+			partPosition(i)[1] -= _partDropSpeed;
 
 	// Rendering
 	Context* glc = renderer()->context();

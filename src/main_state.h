@@ -174,6 +174,7 @@ protected:
 	float _bumpawayTime;
 
 	float _partBaseSpeed;
+	float _partDropSpeed;
 	float _snapDistance;
 	float _massRatio;
 };
