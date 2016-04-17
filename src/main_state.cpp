@@ -389,7 +389,7 @@ void MainState::updateTick() {
 
 	// Gathering parts
 	float magDrag = 0;
-	Vector2 partSpeeds[_shipPartCount];
+	std::vector<Vector2> partSpeeds(_shipPartCount);
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 	{
 		if (!_partAlive[i]) { continue; }
