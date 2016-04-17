@@ -137,7 +137,6 @@ protected:
 	float       _climbCharge;
 	float       _diveCharge;
 
-	std::vector<Vector2> _partSpeeds;
 	std::vector<bool>    _partAlive;
 	unsigned             _shipShape;
 
@@ -163,6 +162,7 @@ protected:
 	float _vSpeedDamping;
 	float _vSpeedFloor;
 	float _vSpeedCap;
+	float _vLockTime;
 
 	float _scratchThreshold;
 	float _crashThreshold;

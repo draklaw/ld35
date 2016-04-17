@@ -42,6 +42,7 @@ public:
 	enum BlockType {
 		WALL,
 		POINT,
+		EMPTY,
 
 		PREVIEW_OFFSET = 12,
 	};
@@ -55,6 +56,7 @@ public:
 	Box2 blockBox(int i) const;
 
 	Box2 hit(const Box2& box, int bi, float dScroll) const;
+	bool pickup(const Box2& box, int bi, float dScroll);
 
 	void initialize();
 	void registerSection(const Path& path);

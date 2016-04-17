@@ -31,6 +31,7 @@
 #define ONE_SEC (1000000000)
 
 //FIXME?
+#define SCREEN_WIDTH  1920
 #define SCREEN_HEIGHT 1080
 
 #define BUFSIZE 128
@@ -86,10 +87,12 @@ MainState::MainState(Game* game)
  * - Below .5, one tap does not reach one block ; above .8 it may jump two.
  * Below min speed (0.2 block/s), the ship halts and snaps to grid.
  * The ship should never go above max speed (0.5 block/f) for safety reasons.
+ * When left adrift, the ship will lock in on a vertical block after .5s.
  */
       _vSpeedDamping (0.8),
       _vSpeedFloor   (0.2 * _blockSize / FRAMERATE),
       _vSpeedCap     (_blockSize / 2),
+      _vLockTime     (.5),
 
 /* Collisions above scratch threshold will bump the player.
  * Collisions above crash threshold will kill the player.
@@ -286,7 +289,6 @@ void MainState::startGame() {
 	_shipShape = 0;
 	_shipParts.resize(_shipPartCount);
 	_partAlive.resize(_shipPartCount);
-	_partSpeeds.resize(_shipPartCount);
 	for (int i = 0 ; i < _shipPartCount ; ++i)
 	{
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
@@ -296,7 +298,6 @@ void MainState::startGame() {
 		_shipParts[i].place(Vector3(pos[0],pos[1],0));
 
 		_partAlive[i] = true;
-		_partSpeeds[i] = Vector2(0,0);
 	}
 
 	_distance = 0;
@@ -305,11 +306,11 @@ void MainState::startGame() {
 	// ad-hoc value to compensate the fact that the baseline is wrong...
 	float tvOff = 8;
 	_scoreText = loadEntity("text.json", _root);
-	_scoreText.place(Vector3(1000, 1080 - tvOff, 0));
+	_scoreText.place(Vector3(1000, SCREEN_HEIGHT - tvOff, 0));
 	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
 
 	_speedText = _scoreText.clone(_root);
-	_speedText.place(Vector3(200, 1080 - tvOff, 0));
+	_speedText.place(Vector3(200, SCREEN_HEIGHT - tvOff, 0));
 	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
 
 	_distanceText = _scoreText.clone(_root);
@@ -355,32 +356,27 @@ void MainState::updateTick() {
 
 	// Gathering parts
 	float magDrag = 0;
+	Vector2 partSpeeds[_shipPartCount];
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 	{
+		if (!_partAlive[i]) { continue; }
+
 		Vector2 origin = partPosition(i),
 		   destination = partExpectedPosition(_shipShape, i);
 		Vector2 gap = destination - origin;
 
 		if (gap[1] > _snapDistance)
-		{
-			dbgLogger.warning("Oh, snap !");
 			destroyPart(i);
-		}
-		else
-			magDrag += gap[1];
 
 		float dist = gap.norm();
 		if (dist > _partBaseSpeed)
 			gap *= _partBaseSpeed / dist;
 
-		_partSpeeds[i] = gap;
+		partSpeeds[i] = gap;
 	}
 
 	// Vertical speed control and physics.
 	float& vspeed = _shipVSpeed;
-
-	// In Soviet Russia, parts gather you !
-	vspeed += -magDrag * _massRatio;
 
 	// Recharging thrusters.
 	_climbCharge = std::min(_climbCharge + _thrustRateCharge, _thrustMaxCharge);
@@ -402,13 +398,6 @@ void MainState::updateTick() {
 	if ( !(_climbInput->isPressed() || _diveInput->isPressed()) )
 		vspeed *= _vSpeedDamping;
 
-	// Clamping/locking vertical speed.
-	if (std::abs(vspeed) > _vSpeedCap)
-		vspeed = std::min(std::max(vspeed, -_vSpeedCap), _vSpeedCap);
-
-	if (std::abs(vspeed) < _vSpeedFloor)
-		vspeed = 0;
-
 	// Bouncing (or crashing) on walls.
 	float bump = collide(_shipPartCount);
 	if (bump == INFINITY)
@@ -418,30 +407,48 @@ void MainState::updateTick() {
 
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 	{
+		if (!_partAlive[i]) { continue; }
+
 		bump = collide(i);
 		if (bump == INFINITY)
 			destroyPart(i);
 		else if (bump != 0)
-			_partSpeeds[i] = Vector2(_partSpeeds[i][0],bump);
+			partSpeeds[i] = Vector2(partSpeeds[i][0],bump);
 	}
 
 	// Looting
 	collect (_shipPartCount);
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-		collect (i);
+		if (_partAlive[i])
+			collect (i);
 
-	// Snapping to grid.
-	if (!vspeed)
+	// Snapping to grid and locking down vspeed.
+	if (std::abs(vspeed) < _vSpeedFloor)
 	{
 		float delta = std::fmod(shipPosition()[1],_blockSize);
 		if (delta > 1)
-			vspeed = (delta > _blockSize/2?1:-1) * delta / FRAMERATE;
+			vspeed = (delta > _blockSize/2?1:-1) * delta * _vLockTime / FRAMERATE;
+		else
+			vspeed = 0;
 	}
 
-	shipPosition()[1] += vspeed;
+	// Shifting parts.
 	for (unsigned i = 0 ; i < _shipPartCount ; i++)
-		partPosition(i) += _partSpeeds[i];
+		if (_partAlive[i])
+		{
+			partPosition(i) += partSpeeds[i];
+			magDrag += partSpeeds[i][1];
+		}
 
+	// In Soviet Russia, parts gather you !
+	vspeed += -magDrag * _massRatio;
+
+	// Clamping vertical speed.
+	if (std::abs(vspeed) > _vSpeedCap)
+		vspeed = std::min(std::max(vspeed, -_vSpeedCap), _vSpeedCap);
+
+	// Shifting ship.
+	shipPosition()[1] += vspeed;
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
@@ -497,7 +504,30 @@ float MainState::collide (unsigned part)
 
 void MainState::collect (unsigned part)
 {
-	//TODO
+	Vector2 partCorner = shipPosition(),
+	        partSize   = Vector2(_blockSize,_blockSize); // Buh.
+	if (part < _shipPartCount)
+	{
+		partCorner += partPosition(part);
+		partSize += Vector2(2 * _blockSize,0); // Ick !
+	}
+
+	partCorner += Vector2(_scrollPos,0);
+
+	Box2 partBox = Box2(partCorner, partCorner + partSize);
+
+	float dScroll = _scrollPos - _prevScrollPos;
+
+	unsigned firstBlock = _map.beginIndex((partCorner[0] - dScroll) / _blockSize),
+	          lastBlock = _map.beginIndex(partCorner[0] / _blockSize + 2);
+
+	static int money = 0;
+	for (int bi = firstBlock ; bi < lastBlock ; bi++)
+	{
+		bool hit = _map.pickup(partBox, bi, dScroll);
+		if (hit)
+			dbgLogger.log("Congratulations, you win money ! (",money++,")");
+	}
 }
 
 
@@ -505,8 +535,10 @@ void MainState::destroyPart (unsigned part)
 {
 	//TODO
 	assert (part < _shipPartCount);
-	//assert (_partAlive[i]);
+	assert (_partAlive[part]);
+	
 	dbgLogger.warning ("Kabooom ! ", part);
+	_partAlive[part] = false;
 }
 
 
@@ -532,7 +564,8 @@ void MainState::updateFrame() {
 	_spriteRenderer.beginFrame();
 
 	float scroll = lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos);
-	float screenWidth = window()->width() * 1080. / window()->height();
+	float screenWidth = window()->width() * SCREEN_HEIGHT
+	                  * 1.f / window()->height();
 	_map.render(scroll);
 	renderBeams(_loop.frameInterp());
 	_sprites.render(_loop.frameInterp(), _camera);
@@ -596,7 +629,7 @@ void MainState::renderBeams(float interp) {
 	                  _ship._get()->worldTransform.matrix());
 	Vector4 mid4(_blockSize/2.f, _blockSize/2.f, 0, 1);
 	Vector2 mid = mid4.head<2>();
-	Vector2 laserOffset(1920, 0);
+	Vector2 laserOffset(SCREEN_WIDTH, 0);
 
 	Vector4 laserColor(1, 0, 0, 1);
 	Vector4 beamsColor(0, .5, 1, 1);
@@ -607,6 +640,8 @@ void MainState::renderBeams(float interp) {
 		shipPos[i] = (wt * (mid4 + Vector4(_blockSize * i, 0, 0, 0))).head<2>();
 	}
 	for(int i = 0; i < _shipPartCount; ++i) {
+		if (!_partAlive[i]) { continue; }
+
 		Matrix4 wt = lerp(interp,
 		                  _shipParts[i]._get()->prevWorldTransform.matrix(),
 		                  _shipParts[i]._get()->worldTransform.matrix());
@@ -622,7 +657,9 @@ void MainState::renderBeams(float interp) {
 
 void MainState::resizeEvent() {
 	Box3 viewBox(Vector3::Zero(),
-	             Vector3(1080 * window()->width() / window()->height(), 1080, 1));
+	             Vector3(SCREEN_HEIGHT * window()->width() / window()->height(),
+	                     SCREEN_HEIGHT,
+	                     1));
 	_camera.setViewBox(viewBox);
 	renderer()->context()->viewport(0, 0, window()->width(), window()->height());
 }

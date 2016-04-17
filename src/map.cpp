@@ -57,9 +57,27 @@ unsigned Map::endIndex(int col) const {
 
 
 Box2 Map::hit(const Box2& box, int bi, float dScroll) const {
+	//FIXME: Hack !
+	if (_blocks[bi].type != WALL)
+		return Box2(Vector2(0,0),Vector2(0,0));
+
 	Box2 bb = blockBox(bi);
 	bb.min() -= Vector2(dScroll, 0);
 	return box.intersection(bb);
+}
+
+
+bool Map::pickup(const Box2& box, int bi, float dScroll) {
+	if (_blocks[bi].type != POINT)
+		return false;
+
+	Box2 bb = blockBox(bi);
+	bb.min() -= Vector2(dScroll, 0);
+
+	bool hit = !box.intersection(bb).isEmpty();
+	if (hit) _blocks[bi].type = EMPTY;
+
+	return hit;
 }
 
 
