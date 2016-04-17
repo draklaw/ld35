@@ -556,8 +556,13 @@ void MainState::collect (unsigned part)
 	     lastBlock = _map.beginIndex(pBox.min()[0] / _blockSize + 2);
 
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
-		if (_map.pickup(pBox, bi, dScroll))
+	{
+		if (_map.pickup(pBox, bi, dScroll).sizes()[1] > _crashThreshold)
+		{
+			_map.clearBlock(bi);
 			_score++;
+		}
+	}
 }
 
 
