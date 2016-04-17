@@ -488,13 +488,8 @@ void MainState::updateTick() {
 }
 
 
-// Check a part for collision, and return the strength of the vertical bump.
-// If the bump is INFINITY, the part has crashed.
-// If part == _shipPartCount, check the ship itself.
-float MainState::collide (unsigned part)
+Box2 MainState::partBox (unsigned part)
 {
-	float dvspeed = 0;
-
 	Vector2 partCorner = shipPosition(),
 	        partSize   = Vector2(_blockSize,_blockSize); // Buh.
 	if (part < _shipPartCount)
@@ -505,16 +500,26 @@ float MainState::collide (unsigned part)
 
 	partCorner += Vector2(_scrollPos,0);
 
-	Box2 partBox = Box2(partCorner, partCorner + partSize);
+	return Box2(partCorner, partCorner + partSize);
+}
 
+
+// Check a part for collision, and return the strength of the vertical bump.
+// If the bump is INFINITY, the part has crashed.
+// If part == _shipPartCount, check the ship itself.
+float MainState::collide (unsigned part)
+{
+	float dvspeed = 0;
+
+	Box2 pBox = partBox(part);
 	float dScroll = _scrollPos - _prevScrollPos;
 
-	unsigned firstBlock = _map.beginIndex((partCorner[0] - dScroll) / _blockSize),
-	          lastBlock = _map.beginIndex(partCorner[0] / _blockSize + 2);
+	int firstBlock = _map.beginIndex((pBox.min()[0] - dScroll) / _blockSize),
+	     lastBlock = _map.beginIndex(pBox.min()[0] / _blockSize + 2);
 
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
 	{
-		Box2 hit = _map.hit(partBox, bi, dScroll);
+		Box2 hit = _map.hit(pBox, bi, dScroll);
 		float amount = hit.sizes()[1];
 
 		if (hit.isEmpty())
@@ -524,7 +529,7 @@ float MainState::collide (unsigned part)
 			dvspeed = INFINITY;
 		else if (amount > _scratchThreshold)
 		{
-			if (hit.min()[1] > partCorner[1])
+			if (hit.min()[1] > pBox.min()[1])
 				dvspeed = -amount / _bumpawayTime;
 			else
 				dvspeed = amount / _bumpawayTime;
@@ -537,40 +542,23 @@ float MainState::collide (unsigned part)
 
 void MainState::collect (unsigned part)
 {
-	Vector2 partCorner = shipPosition(),
-	        partSize   = Vector2(_blockSize,_blockSize); // Buh.
-	if (part < _shipPartCount)
-	{
-		partCorner += partPosition(part);
-		partSize += Vector2(2 * _blockSize,0); // Ick !
-	}
-
-	partCorner += Vector2(_scrollPos,0);
-
-	Box2 partBox = Box2(partCorner, partCorner + partSize);
-
+	Box2 pBox = partBox(part);
 	float dScroll = _scrollPos - _prevScrollPos;
 
-	unsigned firstBlock = _map.beginIndex((partCorner[0] - dScroll) / _blockSize),
-	          lastBlock = _map.beginIndex(partCorner[0] / _blockSize + 2);
+	int firstBlock = _map.beginIndex((pBox.min()[0] - dScroll) / _blockSize),
+	     lastBlock = _map.beginIndex(pBox.min()[0] / _blockSize + 2);
 
-	static int money = 0;
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
-	{
-		bool hit = _map.pickup(partBox, bi, dScroll);
-		if (hit)
-			dbgLogger.log("Congratulations, you win money ! (",money++,")");
-	}
+		if (_map.pickup(pBox, bi, dScroll))
+			_score++;
 }
 
 
 void MainState::destroyPart (unsigned part)
 {
-	//TODO
 	assert (part < _shipPartCount);
 	assert (_partAlive[part]);
-	
-	dbgLogger.warning ("Kabooom ! ", part);
+
 	_partAlive[part] = false;
 }
 

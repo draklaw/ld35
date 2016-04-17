@@ -125,6 +125,7 @@ protected:
 	// Game states
 	Vec2 shipPosition();
 	Vec2 partPosition(unsigned part);
+	Box2 partBox (unsigned part);
 
 	float       _prevScrollPos;
 	float       _scrollPos;
