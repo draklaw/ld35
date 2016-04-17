@@ -583,7 +583,7 @@ void MainState::updateFrame() {
 	snprintf(buff, BUFSIZE, "%.0f m/s", _shipHSpeed);
 	_texts.get(_speedText)->setText(buff);
 
-	snprintf(buff, BUFSIZE, "%.0.2f km", _distance/1000);
+	snprintf(buff, BUFSIZE, "%.2f km", _distance/1000);
 	_texts.get(_distanceText)->setText(buff);
 
 	snprintf(buff, BUFSIZE, "%d", _score);

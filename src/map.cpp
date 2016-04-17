@@ -148,7 +148,7 @@ void Map::appendSection(unsigned i) {
 				_blocks.push_back(Block{ Vector2i(_length, row), POINT });
 			}
 		}
-		_length += 2;
+		_length += 1;
 	}
 }
 
