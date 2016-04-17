@@ -41,7 +41,7 @@ class Map {
 public:
 	enum BlockType {
 		WALL,
-		POINTS
+		POINT
 	};
 
 public:
@@ -55,7 +55,12 @@ public:
 	Box2 hit(const Box2& box, int bi, float dScroll) const;
 
 	void initialize();
-	void generate();
+	void registerSection(const Path& path);
+
+	void clear();
+	void appendSection(unsigned i);
+	void generate(unsigned seed, unsigned minLength, float difficulty,
+	              float variance=.3);
 
 	void render(float scroll);
 
@@ -68,11 +73,15 @@ private:
 
 	static bool blockCmp(const Block& b0, const Block& b1);
 
+	typedef std::vector<ImageAspectWP> SectionVector;
+
 private:
 	MainState*      _state;
 
 	TextureAspectSP _bgTex;
 	TextureAspectSP _tilesTex;
+
+	SectionVector   _sections;
 
 	int             _length;
 	BlockVector     _blocks;

@@ -19,6 +19,8 @@
  */
 
 
+#include <random>
+
 #include <lair/ec/sprite_renderer.h>
 
 #include "main_state.h"
@@ -69,27 +71,68 @@ void Map::initialize() {
 	AssetSP bgAsset = _state->loader()->loadAsset<ImageLoader>("bg.png");
 	_bgTex = _state->renderer()->createTexture(bgAsset);
 
-	AssetSP tilesAsset = _state->loader()->loadAsset<ImageLoader>("ship_block.png");
+	AssetSP tilesAsset = _state->loader()->loadAsset<ImageLoader>("tiles.png");
 	_tilesTex = _state->renderer()->createTexture(tilesAsset);
+
+	registerSection("test_map.png");
 }
 
 
-void Map::generate() {
+void Map::registerSection(const Path& path) {
+	AssetSP asset = _state->loader()->loadAsset<ImageLoader>(path);
+	_sections.push_back(asset->aspect<ImageAspect>());
+}
+
+
+void Map::clear() {
+	_length = 0;
 	_blocks.clear();
+}
 
-	_length = 20;
-	for(int i = 0; i < 3; ++i) {
-		_blocks.push_back(Block{ Vector2i(10, 10-i), WALL });
+
+void Map::appendSection(unsigned i) {
+	lairAssert(i < _sections.size());
+	const ImageSP img = _sections[i].lock()->get();
+	lairAssert(img->format() == Image::FormatRGBA8
+	        || img->format() == Image::FormatRGB8);
+	const uint8* pixels = reinterpret_cast<const uint8*>(img->data());
+	unsigned pxSize = Image::formatByteSize(img->format());
+	for(unsigned col = 0; col < img->width(); ++col) {
+		for(unsigned row = 0; row < img->height(); ++row) {
+			const uint8* pixel = pixels + ((col + row*img->width()) * pxSize);
+			uint8 r = pixel[0];
+			uint8 g = pixel[1];
+			uint8 b = pixel[2];
+			if(r == 0 && g == 0 && b == 0) {
+				_blocks.push_back(Block{ Vector2i(col, row), WALL });
+			}
+			if(r == 0 && g == 255 && b == 0) {
+				_blocks.push_back(Block{ Vector2i(col, row), POINT });
+			}
+		}
 	}
-	for(int i = 0; i < 3; ++i) {
-		_blocks.push_back(Block{ Vector2i(10+i, 12), WALL });
-		_blocks.push_back(Block{ Vector2i(10+i, 14), WALL });
-	}
-	for(int i = 0; i < 400; ++i) {
-		_blocks.push_back(Block{ Vector2i(i, 0), WALL });
+	_length += img->width();
+}
+
+
+void Map::generate(unsigned seed, unsigned minLength, float difficulty,
+                   float variance) {
+	clear();
+
+	unsigned size = _sections.size();
+	unsigned rangeSize = size * variance;
+	unsigned begin = std::max(size - rangeSize, 0u);
+	unsigned end   = std::min(begin + rangeSize, size);
+
+	std::seed_seq seedSeq{ seed };
+	std::mt19937 rEngine(seedSeq);
+	std::uniform_int_distribution<unsigned> rand(begin, end-1);
+
+	while(_length < minLength) {
+		appendSection(rand(rEngine));
 	}
 
-	std::sort(_blocks.begin(), _blocks.end(), blockCmp);
+//	std::sort(_blocks.begin(), _blocks.end(), blockCmp);
 }
 
 
@@ -109,12 +152,18 @@ void Map::render(float scroll) {
 	                    Texture::TRILINEAR, BLEND_NONE);
 
 	TextureSP tilesTex = _tilesTex->_get();
-	Box2 texCoord(Vector2(0, 0), Vector2(1, 1));
+	const int hTiles = 4;
+	const int vTiles = 4;
+	Vector2 tileSize(1. / hTiles, 1. / vTiles);
 
 	unsigned beginCol = scroll / _state->blockSize();
 	unsigned endCol   = beginCol + 41;
 	unsigned i = beginIndex(beginCol);
 	while(i < _blocks.size() && _blocks[i].pos(0) < endCol) {
+		unsigned ti = _blocks[i].type;
+		Vector2 tilePos(float(ti % hTiles) / float(hTiles),
+		                float(ti / hTiles) / float(vTiles));
+		Box2 texCoord(tilePos, tilePos + tileSize);
 		Box2 coords = offsetBox(blockBox(i), Vector2(-scroll, 0));
 		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
 		                    Texture::TRILINEAR, BLEND_ALPHA);
