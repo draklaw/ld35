@@ -261,7 +261,7 @@ void MainState::startGame() {
 	_prevScrollPos = _scrollPos;
 
 	//FIXME
-	_ship.place(Vector3(4*BLOCK_SIZE, 21.5, 0));
+	_ship.place(Vector3(4*BLOCK_SIZE, 5*BLOCK_SIZE, 0));
 	_shipHSpeed = 0;
 	_shipVSpeed = 0;
 	_climbPower = POWER_MAX;
@@ -372,32 +372,30 @@ void MainState::updateTick() {
 		vspeed = 0.0f;
 
 	// > Bouncing (or crashing) on walls.
-	Vector2 shipCorner = _ship.transform().translation().head<2>();
-	Box2 shipBox = Box2(shipCorner, shipCorner + Vector2(_blockSize,_blockSize));
-	float shipX = shipCorner[0], shipY = shipCorner[1];
-	unsigned firstBlock = _map.beginIndex((_prevScrollPos + shipX) / _blockSize),
-	          lastBlock = _map.beginIndex((_scrollPos + shipX) / _blockSize + 2);
-	float dScroll = _scrollPos - _prevScrollPos;
-
-	for (int bi = firstBlock ; bi < lastBlock ; bi++)
+	float bump = collide(_ship);
+	if (bump == INFINITY)
+		dbgLogger.error("u ded. 'sploded hed");
+	else if (bump != 0)
+		vspeed = bump;
+	
+	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 	{
-		Box2 hit = _map.hit(shipBox,bi, dScroll);
-		float amount = hit.sizes()[1];
-		if (amount > CRASH_THRESHOLD) {
-//			dbgLogger.error("u ded. 'sploded hed.");
-		}
-		else if (amount > SCRATCH_THRESHOLD) {
-			if (hit.min()[1] > shipY) // Above
-				vspeed = -amount / BUMP_TIME;
-			else // Below
-				vspeed = amount / BUMP_TIME;
-		}
+		bump = collide(_shipParts[i]);
+		if (bump == INFINITY)
+			destroyPart(i);
+		else if (bump != 0)
+			vspeed = bump;
 	}
+
+	// > Looting
+	collect (_ship);
+	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+		collect (_shipParts[i]);
 
 	// > Snapping to grid.
 	if (!vspeed)
 	{
-		float delta = std::fmod(shipY,_blockSize);
+		float delta = std::fmod(shipPosition()[1],_blockSize);
 		if (delta > 1)
 			vspeed = delta / FRAMERATE * (delta > _blockSize/2.0?1:-1);
 	}
@@ -406,6 +404,55 @@ void MainState::updateTick() {
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
+}
+
+
+float MainState::collide (const EntityRef part)
+{
+	float dvspeed = 0;
+
+	Vector2 offset = Vector2(0,0);
+	if (part != _ship)
+		offset = part.transform().translation().head<2>();
+
+	Vector2 partCorner = _ship.transform().translation().head<2>() + offset;
+	Box2 partBox = Box2(partCorner, partCorner + Vector2(_blockSize,_blockSize));
+	float partX = partCorner[0], partY = partCorner[1];
+
+	unsigned firstBlock = _map.beginIndex((_prevScrollPos + partX) / _blockSize),
+	          lastBlock = _map.beginIndex((_scrollPos + partX) / _blockSize + 2);
+	float dScroll = _scrollPos - _prevScrollPos;
+
+	for (int bi = firstBlock ; bi < lastBlock ; bi++)
+	{
+		Box2 hit = _map.hit(partBox, bi, dScroll);
+		float amount = hit.sizes()[1];
+
+		if (amount > CRASH_THRESHOLD)
+			dvspeed = INFINITY;
+		else if (amount > SCRATCH_THRESHOLD)
+		{
+			if (hit.min()[1] > partY)
+				dvspeed = -amount / BUMP_TIME;
+			else
+				dvspeed = amount / BUMP_TIME;
+		}
+	}
+
+	return dvspeed;
+}
+
+
+void MainState::collect (const EntityRef part)
+{
+	//TODO
+}
+
+
+void MainState::destroyPart (unsigned part)
+{
+	//TODO
+	dbgLogger.warning ("Kabooom ! ", part);
 }
 
 
