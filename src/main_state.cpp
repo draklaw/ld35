@@ -423,13 +423,11 @@ float MainState::collide (const EntityRef part)
 	          lastBlock = _map.beginIndex((_scrollPos + partX) / _blockSize + 2);
 	float dScroll = _scrollPos - _prevScrollPos;
 
-	dbgLogger.log(firstBlock,"-",lastBlock);
-
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
 	{
 		Box2 hit = _map.hit(partBox, bi, dScroll);
 		float amount = hit.sizes()[1];
-		dbgLogger.warning(amount);
+
 		if (amount > CRASH_THRESHOLD)
 			dvspeed = INFINITY;
 		else if (amount > SCRATCH_THRESHOLD)
