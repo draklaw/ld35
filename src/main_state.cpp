@@ -142,9 +142,12 @@ void MainState::initialize() {
 	_inputs.mapScanCode(_nextShapeInput,  SDL_SCANCODE_X);
 	_inputs.mapScanCode(_prevShapeInput,  SDL_SCANCODE_Z);
 
+	_beamsTex = loader()->loadAsset<ImageLoader>("beams.png");
+	renderer()->createTexture(_beamsTex);
+
 	_map.initialize();
 
-	_root = _entities.createEntity(_entities.root(), "root");
+	_root = _entities.root();
 	_ship = loadEntity("ship.json");
 
 	_shipShapes.push_back(Vector2(0,  1));
@@ -507,8 +510,12 @@ void MainState::updateFrame() {
 
 	_spriteRenderer.beginFrame();
 
-	_map.render(lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos));
+	float scroll = lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos);
+	float screenWidth = window()->width() * 1080. / window()->height();
+	_map.render(scroll);
+	renderBeams(_loop.frameInterp());
 	_sprites.render(_loop.frameInterp(), _camera);
+	_map.renderPreview(scroll, 50*_blockSize, screenWidth, 70);
 	_texts.render(_loop.frameInterp());
 
 	_spriteRenderer.endFrame(_camera.transform());
@@ -526,14 +533,77 @@ void MainState::updateFrame() {
 }
 
 
+void MainState::renderBeam(const Matrix4& trans, TextureSP tex, const Vector2& p0,
+                           const Vector2& p1, const Vector4& color,
+                           float texOffset, unsigned row, unsigned rowCount) {
+	float width = tex->height() / rowCount;
+	Vector2 n = p1 - p0;
+	float dist = n.norm();
+	n = n / dist * width / 2.f;
+	n = Vector2(-n(1), n(0));
+
+	Box2 texCoord(Vector2(texOffset, float(row) / float(rowCount)),
+	              Vector2(dist / tex->width() + texOffset,
+	                      float(row + 1) / float(rowCount)));
+
+//	_spriteRenderer.setDrawCall(tex, Texture::TRILINEAR, BLEND_ALPHA);
+
+	unsigned index = _spriteRenderer.vertexCount();
+	_spriteRenderer.addVertex(trans, p0 - n, color, texCoord.corner(Box2::TopLeft));
+	_spriteRenderer.addVertex(trans, p1 - n, color, texCoord.corner(Box2::TopRight));
+	_spriteRenderer.addVertex(trans, p0 + n, color, texCoord.corner(Box2::BottomLeft));
+	_spriteRenderer.addVertex(trans, p1 + n, color, texCoord.corner(Box2::BottomRight));
+
+	_spriteRenderer.addIndex(index + 0);
+	_spriteRenderer.addIndex(index + 1);
+	_spriteRenderer.addIndex(index + 2);
+	_spriteRenderer.addIndex(index + 2);
+	_spriteRenderer.addIndex(index + 1);
+	_spriteRenderer.addIndex(index + 3);
+
+	_spriteRenderer.endSprite();
+}
+
+
+void MainState::renderBeams(float interp) {
+	TextureAspectSP texAspect = _beamsTex->aspect<TextureAspect>();
+	TextureSP tex = texAspect->get();
+
+	_spriteRenderer.setDrawCall(tex, Texture::TRILINEAR, BLEND_ALPHA);
+	Matrix4 wt = lerp(interp,
+	                  _ship._get()->prevWorldTransform.matrix(),
+	                  _ship._get()->worldTransform.matrix());
+	Vector4 mid4(_blockSize/2.f, _blockSize/2.f, 0, 1);
+	Vector2 mid = mid4.head<2>();
+	Vector2 laserOffset(1920, 0);
+
+	Vector4 laserColor(1, 0, 0, 1);
+	Vector4 beamsColor(0, .5, 1, 1);
+
+	renderBeam(wt, tex, mid, mid + laserOffset, laserColor, 0, 0, 2);
+	Vector2 shipPos[3];
+	for(int i = 0; i < 3; ++i) {
+		shipPos[i] = (wt * (mid4 + Vector4(_blockSize * i, 0, 0, 0))).head<2>();
+	}
+	for(int i = 0; i < _shipPartCount; ++i) {
+		Matrix4 wt = lerp(interp,
+		                  _shipParts[i]._get()->prevWorldTransform.matrix(),
+		                  _shipParts[i]._get()->worldTransform.matrix());
+		renderBeam(wt, tex, mid, mid + laserOffset, laserColor, 0, 0, 2);
+
+		Vector2 partPos = (wt * mid4).head<2>();
+		float advance = float(_loop.frameTime()) / float(ONE_SEC) + i * .1;
+		renderBeam(Matrix4::Identity(), tex, shipPos[i%3], partPos, beamsColor,
+		           advance, 1, 2);
+	}
+}
+
+
 void MainState::resizeEvent() {
 	Box3 viewBox(Vector3::Zero(),
-	             Vector3(window()->width(), window()->height(), 1));
+	             Vector3(1080 * window()->width() / window()->height(), 1080, 1));
 	_camera.setViewBox(viewBox);
 	renderer()->context()->viewport(0, 0, window()->width(), window()->height());
-
-	float scale =  float(window()->height()) / 1080.;
-	_root.place(Transform(Eigen::Scaling(scale, scale, 1.f)));
 }
 
 

@@ -38,7 +38,10 @@ Box2 offsetBox(const Box2& box, const Vector2& offset) {
 
 Map::Map(MainState* mainState)
 	: _state(mainState),
-      _length(0) {
+      _length(0),
+      _hTiles(4),
+      _vTiles(4),
+      _nRows (22){
 }
 
 
@@ -99,7 +102,8 @@ void Map::appendSection(unsigned i) {
 	unsigned pxSize = Image::formatByteSize(img->format());
 	for(unsigned col = 0; col < img->width(); ++col) {
 		for(unsigned row = 0; row < img->height(); ++row) {
-			const uint8* pixel = pixels + ((col + row*img->width()) * pxSize);
+			unsigned frow = img->height() - row - 1; // vertical flip
+			const uint8* pixel = pixels + ((col + frow*img->width()) * pxSize);
 			uint8 r = pixel[0];
 			uint8 g = pixel[1];
 			uint8 b = pixel[2];
@@ -152,22 +156,66 @@ void Map::render(float scroll) {
 	                    Texture::TRILINEAR, BLEND_NONE);
 
 	TextureSP tilesTex = _tilesTex->_get();
-	const int hTiles = 4;
-	const int vTiles = 4;
-	Vector2 tileSize(1. / hTiles, 1. / vTiles);
+	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
 
 	unsigned beginCol = scroll / _state->blockSize();
 	unsigned endCol   = beginCol + 41;
 	unsigned i = beginIndex(beginCol);
 	while(i < _blocks.size() && _blocks[i].pos(0) < endCol) {
 		unsigned ti = _blocks[i].type;
-		Vector2 tilePos(float(ti % hTiles) / float(hTiles),
-		                float(ti / hTiles) / float(vTiles));
+		Vector2 tilePos(float(ti % _hTiles) / float(_hTiles),
+		                float(ti / _hTiles) / float(_vTiles));
 		Box2 texCoord(tilePos, tilePos + tileSize);
 		Box2 coords = offsetBox(blockBox(i), Vector2(-scroll, 0));
 		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
 		                    Texture::TRILINEAR, BLEND_ALPHA);
 		++i;
+	}
+}
+
+
+void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWidth) {
+	SpriteRenderer* renderer = _state->spriteRenderer();
+
+	Matrix4 trans = _state->screenTransform();
+	Vector4 color(1, 0, 0, 1);
+	TextureSP tilesTex = _tilesTex->_get();
+	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
+
+	float rightScroll = scroll + screenWidth;
+	unsigned beginCol = beginIndex(rightScroll / _state->blockSize());
+	unsigned endCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
+
+	std::vector<unsigned> blocks;
+	for(unsigned row = 0; row < _nRows; ++ row) {
+		bool gotPoint = false;
+		for(unsigned i = beginCol; i < endCol; ++i) {
+			const Block& b = _blocks[i];
+			if(b.pos(1) == row) {
+				if(b.type == WALL) {
+					blocks.push_back(i);
+					break;
+				}
+				if(b.type == POINT && !gotPoint) {
+					blocks.push_back(i);
+					gotPoint = true;
+				}
+			}
+		}
+	}
+
+	for(unsigned bi = 0; bi < blocks.size(); ++bi) {
+		unsigned i = blocks[bi];
+		unsigned ti = _blocks[i].type + PREVIEW_OFFSET;
+		Vector2 tilePos(float(ti % _hTiles) / float(_hTiles),
+						float(ti / _hTiles) / float(_vTiles));
+		Box2 texCoord(tilePos, tilePos + tileSize);
+		Box2 coords = blockBox(i);
+		coords.min()(0) = (coords.min()(0) - rightScroll) * pWidth / pDist
+						+ screenWidth - pWidth - _state->blockSize();
+		coords.max()(0) = coords.min()(0) + _state->blockSize();
+		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
+							Texture::TRILINEAR, BLEND_ALPHA);
 	}
 }
 

@@ -68,15 +68,18 @@ public:
 	void updateTick();
 	void updateFrame();
 
-	void resizeEvent();
+	void renderBeam(const Matrix4& trans, TextureSP tex, const Vector2& p0,
+	                const Vector2& p1, const Vector4& color,
+	                float texOffset, unsigned row, unsigned rowCount);
+	void renderBeams(float interp);
 
-	
+	void resizeEvent();
 
 	EntityRef loadEntity(const Path& path, EntityRef parent = EntityRef(),
 	                     const Path& cd = Path());
 
 	float blockSize() const { return _blockSize; }
-	Matrix4 screenTransform() const { return _root.transform().matrix(); }
+	const Matrix4& screenTransform() const { return _root.transform().matrix(); }
 
 	SpriteRenderer* spriteRenderer() { return &_spriteRenderer; }
 
@@ -107,6 +110,8 @@ protected:
 	Input*      _thrustDownInput;
 	Input*      _nextShapeInput;
 	Input*      _prevShapeInput;
+
+	AssetSP     _beamsTex;
 
 	EntityRef   _root;
 	EntityRef   _ship;
