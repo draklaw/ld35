@@ -113,11 +113,14 @@ void Map::initialize() {
 	registerSection("segment_2.png");
 	registerSection("segment_3.png");
 	registerSection("segment_4.png");
-	registerSection("segment_5_hard.png");
-	registerSection("segment_5_normal.png");
-	registerSection("segment_6_normal.png");
+	registerSection("segment_5.png");
+	registerSection("segment_6.png");
+	registerSection("segment_7.png");
+	registerSection("segment_9.png");
+	registerSection("segment_8.png");
 	registerSection("segment_6_obvious.png");
 	registerSection("segment_6_tricky.png");
+	registerSection("segment_5_hard.png");
 	registerSection("segment_empty.png");
 	registerSection("segment.png");
 	registerSection("segment_t0.png");
