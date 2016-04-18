@@ -56,6 +56,7 @@ MainState::MainState(Game* game)
       _loop(sys()),
       _fpsTime(0),
       _fpsCount(0),
+      _prevFrameTime(0),
 
       _quitInput    (nullptr),
       _restartInput (nullptr),
@@ -146,6 +147,7 @@ void MainState::initialize() {
 	_diveInput    = _inputs.addInput("dive");
 	_stretchInput = _inputs.addInput("stretch");
 	_shrinkInput  = _inputs.addInput("shrink");
+	_skipInput    = _inputs.addInput("skip");;
 
 	_inputs.mapScanCode(_quitInput,    SDL_SCANCODE_ESCAPE);
 	_inputs.mapScanCode(_restartInput, SDL_SCANCODE_F5);
@@ -155,6 +157,10 @@ void MainState::initialize() {
 	_inputs.mapScanCode(_diveInput,    SDL_SCANCODE_DOWN);
 	_inputs.mapScanCode(_stretchInput, SDL_SCANCODE_X);
 	_inputs.mapScanCode(_shrinkInput,  SDL_SCANCODE_Z);
+	_inputs.mapScanCode(_skipInput,    SDL_SCANCODE_SPACE);
+
+	parseJson(_animations, _game->dataPath() / "animations.json",
+	          "animations.json", log());
 
 	_beamsTex = loader()->loadAsset<ImageLoader>("beams.png");
 	renderer()->createTexture(_beamsTex);
@@ -220,6 +226,9 @@ void MainState::initialize() {
 	_shipShapes.push_back(Vector2(-1, -4));
 	_shipShapes.push_back(Vector2( 1, -2));
 
+	_gameLayer = _entities.createEntity(_entities.root(), "game_layer");
+	_hudLayer  = _entities.createEntity(_entities.root(), "hud_layer");
+
 //	dbgLogger.warning("initialize");
 //	_ship = loadEntity("ship.json");
 //	_ship.sprite()->setTileIndex(4);
@@ -242,14 +251,35 @@ void MainState::initialize() {
 //		_partAlive[i] = true;
 //	}
 
-	EntityRef hudTop = _entities.createEntity(_root, "hud_top");
+	_charSprite = _entities.createEntity(_hudLayer, "char");
+	_sprites.addComponent(_charSprite);
+	_charSprite.sprite()->setTexture("hero.png"); // Dirty way to preload everything
+	_charSprite.sprite()->setTexture("mecano.png");
+	_charSprite.sprite()->setTexture("rival.png");
+	_charSprite.sprite()->setAnchor(Vector2(0, 0));
+	_charSprite.sprite()->setBlendingMode(BLEND_ALPHA);
+	_charSprite.place(Vector3(-550, 0, 0));
+
+	_dialogBg = _entities.createEntity(_hudLayer, "dialog_bg");
+	_sprites.addComponent(_dialogBg);
+	_dialogBg.sprite()->setTexture("dialog.png");
+	_dialogBg.sprite()->setAnchor(Vector2(1, 0));
+	_dialogBg.sprite()->setBlendingMode(BLEND_ALPHA);
+	_dialogBg.place(Vector3(1920 - 96, -450, 0));
+
+	_dialogText = loadEntity("text.json", _hudLayer);
+	_dialogText.place(Vector3(0, 0, 0));
+	_texts.get(_dialogText)->setSize(Vector2i(1230, 315));
+	_texts.get(_dialogText)->setAnchor(Vector2(0, 1));
+
+	EntityRef hudTop = _entities.createEntity(_hudLayer, "hud_top");
 	_sprites.addComponent(hudTop);
 	hudTop.sprite()->setTexture("hud_top.png");
 	hudTop.sprite()->setAnchor(Vector2(0, 1));
 	hudTop.sprite()->setBlendingMode(BLEND_ALPHA);
 	hudTop.place(Vector3(0, 1080, 0));
 
-	EntityRef hudBottom = _entities.createEntity(_root, "hud_bottom");
+	EntityRef hudBottom = _entities.createEntity(_hudLayer, "hud_bottom");
 	_sprites.addComponent(hudBottom);
 	hudBottom.sprite()->setTexture("hud_bottom.png");
 	hudBottom.sprite()->setAnchor(Vector2(0, 0));
@@ -258,15 +288,15 @@ void MainState::initialize() {
 
 	// ad-hoc value to compensate the fact that the baseline is wrong...
 	float tvOff = 8;
-	_scoreText = loadEntity("text.json", _root);
+	_scoreText = loadEntity("text.json", _gameLayer);
 	_scoreText.place(Vector3(1120, 1070 - tvOff, 0));
 	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
 
-	_speedText = _scoreText.clone(_root);
+	_speedText = _scoreText.clone(_gameLayer);
 	_speedText.place(Vector3(230, 1070 - tvOff, 0));
 	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
 
-	_distanceText = _scoreText.clone(_root);
+	_distanceText = _scoreText.clone(_gameLayer);
 	_distanceText.place(Vector3(230, -tvOff, 0));
 	_texts.get(_distanceText)->setAnchor(Vector2(1, 0));
 
@@ -335,11 +365,145 @@ Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 }
 
 
+void MainState::playAnimation(const std::string& name) {
+	if(_animations.isMember(name) && _animations[name].isArray()) {
+		_animCurrent = name;
+		_animStep = -1;
+		nextAnimationStep();
+	}
+	else {
+		log().error("Unable to play animation \"", name,"\".");
+	}
+}
+
+
+void MainState::updateAnimation(float time) {
+	if(_anim) {
+		float t = time + _animPos;
+//		dbgLogger.error("updateAnimation: ", time, ", ", t);
+		_anim->update(t);
+		_animPos = t;
+	}
+	if(_animState == ANIM_PLAY && (!_anim || _animPos > _anim->length)) {
+		nextAnimationStep();
+	}
+}
+
+
+void MainState::nextAnimationStep() {
+	float animLen = .4;
+	float leftDialogPos = 1920 - 96;
+	float dialogY = 96;
+
+	const Json::Value& stepList = _animations[_animCurrent];
+	lairAssert(stepList.isArray());
+
+	++_animStep;
+	_anim.reset();
+	_animState = ANIM_NONE;
+	_pause = false;
+//	dbgLogger.error("nextAnimationStep:", _animCurrent, ":", _animStep);
+	if(_animStep < stepList.size()) {
+		try {
+			const Json::Value& step = stepList[_animStep];
+			if(!step.isArray()) {
+				log().error("Animation ", _animCurrent, ":", _animStep, " is not an array.");
+				return;
+			}
+			const std::string& cmd = step[0].asString();
+			_animPos = 0;
+			_animState = ANIM_PLAY;
+			_pause = true;
+//			dbgLogger.error("  play ", cmd);
+			if(cmd == "show_char") {
+				auto a = std::make_shared<CompoundAnim>();
+				_charSprite.sprite()->setTexture(step[1].asString());
+				a->addAnim(std::make_shared<MoveAnim>(
+				               animLen, _charSprite,
+				               _charSprite.transform().translation().head<2>(),
+				               Vector2(0, 0)));
+				a->addAnim(std::make_shared<ColorAnim>(
+				               animLen, _charSprite,
+				               _charSprite.sprite()->color(),
+				               Vector4(1, 1, 1, 1)));
+				_dialogBg.sprite()->setAnchor(Vector2(1, 0));
+				a->addAnim(std::make_shared<MoveAnim>(
+				               animLen, _dialogBg,
+				               _dialogBg.transform().translation().head<2>(),
+				               Vector2(leftDialogPos, dialogY)));
+				_anim = a;
+			}
+			if(cmd == "hide_char") {
+				auto a = std::make_shared<CompoundAnim>();
+				a->addAnim(std::make_shared<MoveAnim>(
+				               animLen, _charSprite,
+				               _charSprite.transform().translation().head<2>(),
+				               Vector2(-550, 0)));
+				a->addAnim(std::make_shared<ColorAnim>(
+				               animLen, _charSprite,
+				               _charSprite.sprite()->color(),
+				               Vector4(0, 0, 0, 1)));
+				_anim = a;
+			}
+			if(cmd == "end_dialog") {
+				auto a = std::make_shared<CompoundAnim>();
+				a->addAnim(std::make_shared<MoveAnim>(
+				               animLen, _charSprite,
+				               _charSprite.transform().translation().head<2>(),
+				               Vector2(-550, 0)));
+				a->addAnim(std::make_shared<ColorAnim>(
+				               animLen, _charSprite,
+				               _charSprite.sprite()->color(),
+				               Vector4(0, 0, 0, 1)));
+				_dialogBg.sprite()->setAnchor(Vector2(1, 0));
+				a->addAnim(std::make_shared<MoveAnim>(
+				               animLen, _dialogBg,
+				               _dialogBg.transform().translation().head<2>(),
+				               Vector2(leftDialogPos, -450)));
+				_texts.get(_dialogText)->setText("");
+				_anim = a;
+			}
+			if(cmd == "show_text") {
+				auto a = std::make_shared<CompoundAnim>();
+				_dialogText.place(Vector3(550, 475, 0));
+				_texts.get(_dialogText)->setText(step[1].asString());
+				_animState = ANIM_WAIT;
+			}
+		}
+		catch(Json::LogicError e) {
+			log().error("Animation ", _animCurrent, ":", _animStep, ": ", e.what());
+			return;
+		}
+	}
+}
+
+
+void MainState::endAnimation() {
+//	dbgLogger.error("endAnimation");
+	if(_animState == ANIM_WAIT) {
+		if(_anim) {
+			_anim->update(_anim->length);
+		}
+		nextAnimationStep();
+	}
+	else {
+		while(_animState == ANIM_PLAY) {
+			if(_anim) {
+				_anim->update(_anim->length);
+			}
+			nextAnimationStep();
+		}
+	}
+}
+
+
 void MainState::startGame(int level) {
 	if(_ship.isValid())
 		_entities.destroyEntity(_ship);
 
 	_currentLevel = level % _levelCount;
+
+	_pause = false;
 
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
@@ -371,10 +535,8 @@ void MainState::startGame(int level) {
 
 	_shipSoundSample = 0;
 
-	_root = _entities.root();
-
 	_ship = loadEntity("ship.json");
-	dbgLogger.error(_ship.name());
+//	dbgLogger.error(_ship.name());
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
@@ -386,7 +548,7 @@ void MainState::startGame(int level) {
 //	EntityRef ship2 = _ship.firstChild();
 //	while(ship2.nextSibling().isValid()) ship2 = ship2.nextSibling();
 	EntityRef ship2 = _ship.clone(_ship);
-	dbgLogger.error(ship2.name());
+//	dbgLogger.error(ship2.name());
 	ship2.sprite()->setColor(_levelColor);
 	ship2.sprite()->setTileIndex(1);
 	ship2.place(Vector3(0, 0, 0));
@@ -397,7 +559,7 @@ void MainState::startGame(int level) {
 	for (int i = 0 ; i < _shipPartCount ; ++i)
 	{
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
-		dbgLogger.error(_shipParts[i].name());
+//		dbgLogger.error(_shipParts[i].name());
 		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
 		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 9: 12));
 		_shipParts[i].sprite()->setColor(_levelColor2);
@@ -406,7 +568,7 @@ void MainState::startGame(int level) {
 
 //		EntityRef part2 = _shipParts[i].firstChild();
 		EntityRef part2 = _shipParts[i].clone(_shipParts[i]);
-		dbgLogger.error(part2.name());
+//		dbgLogger.error(part2.name());
 		part2.sprite()->setColor(_levelColor);
 		part2.sprite()->setTileIndex(i + ((i<3)? 0: 3));
 		part2.place(Vector3(0, 0, 0));
@@ -429,6 +591,8 @@ void MainState::startGame(int level) {
 
 //	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 //	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);
+
+	playAnimation("intro");
 }
 
 
@@ -443,9 +607,17 @@ void MainState::updateTick() {
 		startGame((_currentLevel + 1) % _levelCount);
 	}
 
+	if(_skipInput->justPressed()) {
+		endAnimation();
+	}
+
 	// Gameplay
 	double time    = double(_loop.frameTime()) / double(ONE_SEC);
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
+
+	if(_pause) {
+		return;
+	}
 
 	// Shapeshift !
 	if(_stretchInput->justPressed()) { ++_shipShape; }
@@ -649,6 +821,8 @@ void MainState::destroyPart (unsigned part)
 
 void MainState::updateFrame() {
 //	double time = double(_loop.frameTime()) / double(ONE_SEC);
+	double etime = double(_loop.frameTime() - _prevFrameTime) / double(ONE_SEC);
+
 	char buff[BUFSIZE];
 
 	snprintf(buff, BUFSIZE, "%.0f m/s", _shipHSpeed);
@@ -664,6 +838,8 @@ void MainState::updateFrame() {
 	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
 		if (!_partAlive[i] && partPosition(i)[1] > -SCREEN_HEIGHT)
 			partPosition(i)[1] -= _partDropSpeed;
+
+	updateAnimation(etime);
 
 	// Rendering
 	Context* glc = renderer()->context();
@@ -694,6 +870,8 @@ void MainState::updateFrame() {
 		_fpsTime  = now;
 		_fpsCount = 0;
 	}
+
+	_prevFrameTime = _loop.frameTime();
 }
 
 
@@ -784,7 +962,7 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 	}
 
 	if(!parent.isValid()) {
-		parent = _root;
+		parent = _gameLayer;
 	}
 
 	return _entities.createEntityFromJson(parent, json, localPath.dir());

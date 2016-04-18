@@ -24,6 +24,7 @@
 
 
 #include <lair/core/signal.h>
+#include <lair/core/json.h>
 
 #include <lair/utils/game_state.h>
 #include <lair/utils/interp_loop.h>
@@ -35,6 +36,8 @@
 #include <lair/ec/entity_manager.h>
 #include <lair/ec/sprite_component.h>
 #include <lair/ec/bitmap_text_component.h>
+
+#include "animation.h"
 
 #include "map.h"
 
@@ -49,6 +52,7 @@ typedef decltype(Transform().translation().head<2>()) Vec2;
 typedef std::vector<EntityRef> EntityVector;
 
 void shipSoundCb(int chan, void *stream, int len, void *udata);
+
 
 class MainState : public GameState {
 public:
@@ -66,6 +70,11 @@ public:
 	unsigned shipShapeCount() const;
 	Vector2 partExpectedPosition(unsigned shape, unsigned part) const;
 
+	void playAnimation(const std::string& name);
+	void updateAnimation(float time);
+	void nextAnimationStep();
+	void endAnimation();
+
 	void startGame(int level);
 	void updateTick();
 	void updateFrame();
@@ -81,7 +90,7 @@ public:
 	                     const Path& cd = Path());
 
 	float blockSize() const { return _blockSize; }
-	const Matrix4& screenTransform() const { return _root.transform().matrix(); }
+	const Matrix4& screenTransform() const { return _gameLayer.transform().matrix(); }
 
 	SpriteRenderer* spriteRenderer() { return &_spriteRenderer; }
 
@@ -107,6 +116,7 @@ protected:
 	InterpLoop _loop;
 	int64      _fpsTime;
 	unsigned   _fpsCount;
+	uint64     _prevFrameTime;
 
 	Input* _quitInput;
 	Input* _restartInput;
@@ -116,17 +126,35 @@ protected:
 	Input* _diveInput;
 	Input* _stretchInput;
 	Input* _shrinkInput;
+	Input* _skipInput;
 
 	AssetSP _beamsTex;
 
-	EntityRef    _root;
+	EntityRef    _gameLayer;
+	EntityRef    _hudLayer;
 	EntityRef    _scoreText;
 	EntityRef    _speedText;
 	EntityRef    _distanceText;
+	EntityRef    _charSprite;
+	EntityRef    _dialogBg;
+	EntityRef    _dialogText;
 	EntityRef    _ship;
 	EntityVector _shipParts;
 
 	Map _map;
+
+	enum AnimState {
+		ANIM_NONE,
+		ANIM_PLAY,
+		ANIM_WAIT
+	};
+
+	Json::Value  _animations;
+	AnimationSP  _anim;
+	float        _animPos;
+	AnimState    _animState;
+	std::string  _animCurrent;
+	int          _animStep;
 
 	// Game states
 	Vec2 shipPosition();
@@ -136,6 +164,8 @@ protected:
 	int         _levelCount;
 	int         _currentLevel;
 	std::vector<Vector4> _levelColors;
+
+	bool        _pause;
 
 	float       _prevScrollPos;
 	float       _scrollPos;
