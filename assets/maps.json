@@ -7,6 +7,7 @@
 		"beam_color":  [   0, 255, 255, 255 ],
 		"laser_color": [   0, 255,   0, 255 ],
 		"text_color":  [   0, 255,   0, 255 ],
+		"min_score":   500,
 		"segments": [
 			"segment_1.png",
 			"segment_2.png",
@@ -15,7 +16,8 @@
 		"anims": [
 			[ 0, "intro" ]
 		],
-		"end_anim": "intro"
+		"end_anim":  "intro",
+		"fail_anim": "fail"
 	},
 	{
 		"bg1":         "lvl2_l2.png",

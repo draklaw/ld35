@@ -645,9 +645,12 @@ void MainState::updateTick() {
 	}
 
 	bool levelFinished = _scrollPos >= _map.length() * _blockSize;
-	if(alive && _animState == ANIM_NONE && levelFinished && !_levelFinished
-	&& _mapInfo[_currentLevel].isMember("end_anim")) {
-		playAnimation(_mapInfo[_currentLevel]["end_anim"].asString());
+	bool levelSucceded = _score >= _mapInfo[_currentLevel].get("min_score", 0).asFloat();
+	if(alive && _animState == ANIM_NONE && levelFinished && !_levelFinished) {
+		std::string anim = _mapInfo[_currentLevel]
+		        .get(levelSucceded? "end_anim": "fail_anim", "").asString();
+		if(!anim.empty())
+			playAnimation(anim);
 	}
 	_levelFinished = levelFinished;
 
@@ -665,7 +668,7 @@ void MainState::updateTick() {
 	}
 
 	if(alive && _levelFinished) {
-		startGame(_currentLevel + 1);
+		startGame(_currentLevel + levelSucceded);
 		_entities.updateWorldTransform();
 		return;
 	}
