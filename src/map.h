@@ -60,6 +60,8 @@ public:
 	Box2 pickup(const Box2& box, int bi, float dScroll);
 	void clearBlock(int bi);
 
+	bool hasWallAtYInRange(int y, int begin, int end) const;
+
 	void initialize();
 	void registerSection(const Path& path);
 	void setBg(unsigned i, const Path& path);

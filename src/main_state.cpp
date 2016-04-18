@@ -165,6 +165,10 @@ void MainState::initialize() {
 	_beamsTex = loader()->loadAsset<ImageLoader>("beams.png");
 	renderer()->createTexture(_beamsTex);
 
+	_warningSound = loader()->loadAsset<SoundLoader>("warning.wav");
+	_pointSound   = loader()->loadAsset<SoundLoader>("ping.wav");
+	_crashSound   = loader()->loadAsset<SoundLoader>("crash.wav");
+
 	_map.initialize();
 	_map.setBg(0, "lvl1_l2.png");
 	_map.setBg(1, "lvl1_l3.png");
@@ -365,6 +369,11 @@ Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 }
 
 
+float MainState::warningScrollDist() const {
+	return _shipHSpeed / 100 * _blockSize;
+}
+
+
 void MainState::playAnimation(const std::string& name) {
 	if(_animations.isMember(name) && _animations[name].isArray()) {
 		_animCurrent = name;
@@ -534,6 +543,8 @@ void MainState::startGame(int level) {
 	_textColor   = Vector4(0, 1, 0, 1);
 
 	_shipSoundSample = 0;
+	_lastPointSound  = -ONE_SEC;
+	_warningTileEndIndex = 0;
 
 	_ship = loadEntity("ship.json");
 //	dbgLogger.error(_ship.name());
@@ -733,6 +744,19 @@ void MainState::updateTick() {
 	// Shifting ship.
 	shipPosition()[1] += vspeed;
 
+	// Warning sound
+	int warningTileY = (_scrollPos + SCREEN_HEIGHT + warningScrollDist()) / _blockSize;
+	int warningTileEnd = _map.beginIndex(warningTileY);
+	_warningMap.resize(21, false);
+	for(int y = 1; y < 21; ++y) {
+		bool hasWall = _map.hasWallAtYInRange(y, _warningTileEndIndex, warningTileEnd);
+		if(hasWall && !_warningMap[y]) {
+			audio()->playSound(_warningSound, 0, CHANN_WARNING);
+		}
+		_warningMap[y] = hasWall;
+	}
+	_warningTileEndIndex = warningTileEnd;
+
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
 }
@@ -798,6 +822,7 @@ void MainState::collect (unsigned part)
 	int firstBlock = _map.beginIndex((pBox.min()[0] - dScroll) / _blockSize),
 	     lastBlock = _map.beginIndex(pBox.min()[0] / _blockSize + 2);
 
+	unsigned prevScore = _score;
 	for (int bi = firstBlock ; bi < lastBlock ; bi++)
 	{
 		if (_map.pickup(pBox, bi, dScroll).sizes()[1] > _crashThreshold)
@@ -805,6 +830,12 @@ void MainState::collect (unsigned part)
 			_map.clearBlock(bi);
 			_score++;
 		}
+	}
+
+	int64 soundDelay = ONE_SEC / 15;
+	if(_score != prevScore && _lastPointSound + soundDelay < int64(_loop.tickTime())) {
+		audio()->playSound(_pointSound, 0, CHANN_POINT);
+		_lastPointSound = _loop.tickTime();
 	}
 }
 
@@ -816,6 +847,8 @@ void MainState::destroyPart (unsigned part)
 
 	_partAlive[part] = false;
 	partPosition(part)[1] += _blockSize;
+
+	audio()->playSound(_crashSound, 0, CHANN_CRASH);
 }
 
 
@@ -850,12 +883,12 @@ void MainState::updateFrame() {
 	_spriteRenderer.beginFrame();
 
 	float scroll = lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos);
-	float screenWidth = window()->width() * SCREEN_HEIGHT
-	                  * 1.f / window()->height();
-	_map.render(scroll, _shipHSpeed/100*_blockSize, screenWidth);
+	float screenWidth = float(window()->width() * SCREEN_HEIGHT)
+	                  / window()->height();
+	_map.render(scroll, warningScrollDist(), screenWidth);
 	renderBeams(_loop.frameInterp());
 	_sprites.render(_loop.frameInterp(), _camera);
-	_map.renderPreview(scroll, _shipHSpeed/100*_blockSize, screenWidth, 70);
+	_map.renderPreview(scroll, warningScrollDist(), screenWidth, 70);
 	_texts.render(_loop.frameInterp());
 
 	_spriteRenderer.endFrame(_camera.transform());

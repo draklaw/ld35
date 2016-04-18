@@ -85,6 +85,15 @@ void Map::clearBlock(int bi)
 }
 
 
+bool Map::hasWallAtYInRange(int y, int begin, int end) const {
+	for(int i = begin; i < end; ++i) {
+		if(_blocks[i].pos(1) == y && _blocks[i].type == WALL)
+			return true;
+	}
+	return false;
+}
+
+
 Box2 Map::blockBox(int i) const {
 	const Block& b = _blocks[i];
 	Vector2 p = b.pos.cast<float>() * _state->blockSize();

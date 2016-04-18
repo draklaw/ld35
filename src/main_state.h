@@ -69,6 +69,7 @@ public:
 
 	unsigned shipShapeCount() const;
 	Vector2 partExpectedPosition(unsigned shape, unsigned part) const;
+	float warningScrollDist() const;
 
 	void playAnimation(const std::string& name);
 	void updateAnimation(float time);
@@ -130,6 +131,16 @@ protected:
 
 	AssetSP _beamsTex;
 
+	enum SoundChannel {
+		CHANN_WARNING,
+		CHANN_POINT,
+		CHANN_CRASH
+	};
+
+	AssetSP _warningSound;
+	AssetSP _pointSound;
+	AssetSP _crashSound;
+
 	EntityRef    _gameLayer;
 	EntityRef    _hudLayer;
 	EntityRef    _scoreText;
@@ -184,6 +195,9 @@ protected:
 
 	AssetWP     _shipSound;
 	int         _shipSoundSample;
+	int64       _lastPointSound;
+	int         _warningTileEndIndex;
+	std::vector<bool> _warningMap;
 
 	std::vector<bool>    _partAlive;
 	unsigned             _shipShape;
