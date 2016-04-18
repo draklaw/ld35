@@ -13,8 +13,7 @@
 			"segment_3.png"
 		],
 		"anims": [
-			[ 0, "intro" ],
-			[ 2000, "intro" ]
+			[ 0, "intro" ]
 		]
 	},
 	{
