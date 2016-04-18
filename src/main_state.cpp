@@ -280,7 +280,7 @@ void MainState::startGame() {
 	_levelColor  = Vector4(112, 46, 188, 255) / 255.f;
 	_levelColor2 = Vector4(0, 1, 1, .5);
 	_beamColor   = _levelColor2;
-	_laserColor  = Vector4(1, 0, 0, .2);
+	_laserColor  = Vector4(1, 0, 0, .4);
 	_textColor   = Vector4(0, 1, 0, 1);
 
 	_shipSoundSample = 0;
@@ -605,7 +605,7 @@ void MainState::updateFrame() {
 	float scroll = lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos);
 	float screenWidth = window()->width() * SCREEN_HEIGHT
 	                  * 1.f / window()->height();
-	_map.render(scroll);
+	_map.render(scroll, _shipHSpeed/100*_blockSize, screenWidth);
 	renderBeams(_loop.frameInterp());
 	_sprites.render(_loop.frameInterp(), _camera);
 	_map.renderPreview(scroll, _shipHSpeed/100*_blockSize, screenWidth, 70);

@@ -71,7 +71,7 @@ public:
 	              float variance=.3);
 
 	void updateComming(float scroll, float pDist, float screenWidth);
-	void render(float scroll);
+	void render(float scroll, float pDist, float screenWidth);
 	void renderPreview(float scroll, float pDist, float screenWidth, float pWidth);
 
 private:
@@ -85,13 +85,7 @@ private:
 
 	typedef std::vector<ImageAspectWP> SectionVector;
 
-	struct Comming {
-		int pindex;
-		int windex;
-		float pdist;
-		float wdist;
-	};
-	typedef std::vector<Comming> CommingVector;
+	typedef std::vector<int> CommingVector;
 
 private:
 	MainState*      _state;
@@ -101,6 +95,7 @@ private:
 	TextureAspectSP _tilesTex;
 	unsigned        _hTiles;
 	unsigned        _vTiles;
+	TextureAspectSP _warningTex;
 
 	SectionVector   _sections;
 	unsigned        _nRows;
