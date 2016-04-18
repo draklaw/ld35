@@ -189,7 +189,6 @@ void Map::appendSection(const ImageSP img) {
 
 
 void Map::appendSection(const Path& path) {
-	dbgLogger.warning(path);
 	AssetSP asset = _state->loader()->loadAsset<ImageLoader>(path);
 	_state->loader()->waitAll();
 	ImageAspectSP aspect = asset->aspect<ImageAspect>();

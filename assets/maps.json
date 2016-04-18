@@ -44,7 +44,7 @@
 	{
 		"bg1":         "lvl4_l2.png",
 		"bg2":         "lvl4_l3.png",
-		"color":       [   0, 255,   0, 255 ],
+		"color":       [  24, 255,  66, 255 ],
 		"alt_color":   [   0, 255, 255, 255 ],
 		"beam_color":  [   0, 255, 255, 255 ],
 		"laser_color": [   0, 255,   0, 255 ],
@@ -73,6 +73,20 @@
 		"bg1":         "lvl6_l2.png",
 		"bg2":         "lvl6_l3.png",
 		"color":       [ 255, 183,  75, 255 ],
+		"alt_color":   [   0, 255, 255, 255 ],
+		"beam_color":  [   0, 255, 255, 255 ],
+		"laser_color": [   0, 255,   0, 255 ],
+		"text_color":  [   0, 255,   0, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		]
+	},
+	{
+		"bg1":         "lvl7_l2.png",
+		"bg2":         "lvl7_l3.png",
+		"color":       [ 240,  21,  21, 255 ],
 		"alt_color":   [   0, 255, 255, 255 ],
 		"beam_color":  [   0, 255, 255, 255 ],
 		"laser_color": [   0, 255,   0, 255 ],
