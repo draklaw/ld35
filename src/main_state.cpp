@@ -530,6 +530,14 @@ void MainState::startGame(int level) {
 	_laserColor  = parseColor(info["laser_color"]);
 	_textColor   = parseColor(info["text_color"]);
 
+	const Json::Value& mapAnims = info["anims"];
+	_mapAnims.clear();
+	for(int i = 0; i < mapAnims.size(); ++i) {
+		_mapAnims.push_back(std::make_pair(mapAnims[i][0].asInt(),
+		                                   mapAnims[i][1].asString()));
+	}
+	_mapAnimIndex = 0;
+
 	_shipSoundSample = 0;
 	_lastPointSound  = -ONE_SEC;
 	_warningTileX    = 0;
@@ -604,7 +612,8 @@ void MainState::startGame(int level) {
 	_dialogBg.place(Vector3(SCREEN_WIDTH - 96, -450, 0));
 	_dialogText.place(Vector3(0, 0, 0));
 	_prevFrameTime = _loop.tickTime();
-	playAnimation("intro");
+
+	_animState = ANIM_NONE;
 }
 
 
@@ -617,6 +626,12 @@ void MainState::updateTick() {
 	}
 	if(_restartInput->justPressed()) {
 		startGame((_currentLevel + 1) % _levelCount);
+	}
+
+	if(_animState == ANIM_NONE && _mapAnimIndex < _mapAnims.size()
+	&& int(_scrollPos) >= _mapAnims[_mapAnimIndex].first) {
+		playAnimation(_mapAnims[_mapAnimIndex].second);
+		++_mapAnimIndex;
 	}
 
 	if(_skipInput->justPressed()) {
@@ -828,7 +843,7 @@ void MainState::collect (unsigned part)
 			_score += _shipHSpeed / 1000 - 1;
 
 			if(_lastPointSound + ONE_SEC / 15 < int64(_loop.tickTime())) {
-				audio()->playSound(_pointSound, 0, CHANN_POINT)-1;
+				audio()->playSound(_pointSound, 0, CHANN_POINT);
 				_lastPointSound = _loop.tickTime();
 			}
 		}

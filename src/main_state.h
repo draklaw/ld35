@@ -153,6 +153,8 @@ protected:
 	EntityVector _shipParts;
 
 	Json::Value  _mapInfo;
+	std::vector<std::pair<int, std::string>> _mapAnims;
+	int          _mapAnimIndex;
 	Map          _map;
 
 	enum AnimState {
