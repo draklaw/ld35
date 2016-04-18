@@ -58,6 +58,7 @@ MainState::MainState(Game* game)
       _fpsCount(0),
 
       _quitInput    (nullptr),
+      _restartInput (nullptr),
       _accelInput   (nullptr),
       _brakeInput   (nullptr),
       _climbInput   (nullptr),
@@ -66,6 +67,9 @@ MainState::MainState(Game* game)
       _shrinkInput  (nullptr),
 
       _map(this),
+
+      _levelCount   (4),
+      _currentLevel (-1),
 
       _shipPartCount(6),
       _blockSize    (48),
@@ -135,6 +139,7 @@ void MainState::initialize() {
 	        .track(_slotTracker);
 
 	_quitInput    = _inputs.addInput("quit");
+	_restartInput = _inputs.addInput("restart");
 	_accelInput   = _inputs.addInput("accel");
 	_brakeInput   = _inputs.addInput("brake");
 	_climbInput   = _inputs.addInput("climb");
@@ -143,6 +148,7 @@ void MainState::initialize() {
 	_shrinkInput  = _inputs.addInput("shrink");
 
 	_inputs.mapScanCode(_quitInput,    SDL_SCANCODE_ESCAPE);
+	_inputs.mapScanCode(_restartInput, SDL_SCANCODE_F5);
 	_inputs.mapScanCode(_accelInput,   SDL_SCANCODE_RIGHT);
 	_inputs.mapScanCode(_brakeInput,   SDL_SCANCODE_LEFT);
 	_inputs.mapScanCode(_climbInput,   SDL_SCANCODE_UP);
@@ -158,6 +164,12 @@ void MainState::initialize() {
 	_map.setBg(1, "lvl1_l3.png");
 	_map.setBgScroll(0, .4);
 	_map.setBgScroll(1, .7);
+
+	_levelColors.push_back(Vector4(112, 46, 188, 255) / 255.f);
+	_levelColors.push_back(Vector4(27, 20, 133, 255) / 255.f);
+	_levelColors.push_back(Vector4(100, 215, 238, 255) / 255.f);
+	_levelColors.push_back(Vector4(255, 183, 75, 255) / 255.f);
+	lairAssert(_levelColors.size() == _levelCount);
 
 	_shipShapes.push_back(Vector2(0,  1));
 	_shipShapes.push_back(Vector2(1,  1));
@@ -208,6 +220,56 @@ void MainState::initialize() {
 	_shipShapes.push_back(Vector2(-1, -4));
 	_shipShapes.push_back(Vector2( 1, -2));
 
+//	dbgLogger.warning("initialize");
+//	_ship = loadEntity("ship.json");
+//	_ship.sprite()->setTileIndex(4);
+
+//	EntityRef ship2 = _ship.clone(_ship, "ship2");
+
+//	_shipParts.resize(_shipPartCount);
+//	_partAlive.resize(_shipPartCount);
+//	for (int i = 0 ; i < _shipPartCount ; ++i)
+//	{
+//		_shipParts[i] = _ship.clone(_ship, ("shipPart" + std::to_string(i)).c_str());
+//		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
+//		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 9: 12));
+
+//		EntityRef part2 = _shipParts[i].clone(_shipParts[i],
+//		                                      (_shipParts[i].name() + std::string("2")).c_str());
+//		part2.sprite()->setTileIndex(i + ((i<3)? 0: 3));
+//		part2.place(Vector3(0, 0, 0));
+
+//		_partAlive[i] = true;
+//	}
+
+	EntityRef hudTop = _entities.createEntity(_root, "hud_top");
+	_sprites.addComponent(hudTop);
+	hudTop.sprite()->setTexture("hud_top.png");
+	hudTop.sprite()->setAnchor(Vector2(0, 1));
+	hudTop.sprite()->setBlendingMode(BLEND_ALPHA);
+	hudTop.place(Vector3(0, 1080, 0));
+
+	EntityRef hudBottom = _entities.createEntity(_root, "hud_bottom");
+	_sprites.addComponent(hudBottom);
+	hudBottom.sprite()->setTexture("hud_bottom.png");
+	hudBottom.sprite()->setAnchor(Vector2(0, 0));
+	hudBottom.sprite()->setBlendingMode(BLEND_ALPHA);
+	hudBottom.place(Vector3(0, 0, 0));
+
+	// ad-hoc value to compensate the fact that the baseline is wrong...
+	float tvOff = 8;
+	_scoreText = loadEntity("text.json", _root);
+	_scoreText.place(Vector3(1120, 1070 - tvOff, 0));
+	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
+
+	_speedText = _scoreText.clone(_root);
+	_speedText.place(Vector3(230, 1070 - tvOff, 0));
+	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
+
+	_distanceText = _scoreText.clone(_root);
+	_distanceText.place(Vector3(230, -tvOff, 0));
+	_texts.get(_distanceText)->setAnchor(Vector2(1, 0));
+
 	_shipSound = loader()->loadAsset<SoundLoader>("engine0.wav");
 	//loader()->load<MusicLoader>("music.ogg");
 
@@ -234,7 +296,7 @@ void MainState::run() {
 	_fpsTime  = sys()->getTimeNs();
 	_fpsCount = 0;
 
-	startGame();
+	startGame(0);
 
 	do {
 		switch(_loop.nextEvent()) {
@@ -273,11 +335,35 @@ Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 }
 
 
-void MainState::startGame() {
+void MainState::startGame(int level) {
+	if(_ship.isValid())
+		_entities.destroyEntity(_ship);
+
+	_currentLevel = level % _levelCount;
+
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
 
-	_levelColor  = Vector4(112, 46, 188, 255) / 255.f;
+	switch(_currentLevel) {
+	case 0:
+		_map.setBg(0, "lvl1_l2.png");
+		_map.setBg(1, "lvl1_l3.png");
+		break;
+	case 1:
+		_map.setBg(0, "lvl2_l2.png");
+		_map.setBg(1, "lvl2_l3.png");
+		break;
+	case 2:
+		_map.setBg(0, "lvl3_l2.png");
+		_map.setBg(1, "lvl3_l3.png");
+		break;
+	case 3:
+		_map.setBg(0, "lvl6_l2.png");
+		_map.setBg(1, "lvl6_l3.png");
+		break;
+	}
+
+	_levelColor  = _levelColors[_currentLevel];
 	_levelColor2 = Vector4(0, 1, 1, .5);
 	_beamColor   = _levelColor2;
 	_laserColor  = Vector4(1, 0, 0, .4);
@@ -287,21 +373,8 @@ void MainState::startGame() {
 
 	_root = _entities.root();
 
-	EntityRef hudTop = _entities.createEntity(_root, "hud_top");
-	_sprites.addComponent(hudTop);
-	hudTop.sprite()->setTexture("hud_top.png");
-	hudTop.sprite()->setAnchor(Vector2(0, 1));
-	hudTop.sprite()->setBlendingMode(BLEND_ALPHA);
-	hudTop.place(Vector3(0, 1080, 0));
-
-	EntityRef hudBottom = _entities.createEntity(_root, "hud_bottom");
-	_sprites.addComponent(hudBottom);
-	hudBottom.sprite()->setTexture("hud_bottom.png");
-	hudBottom.sprite()->setAnchor(Vector2(0, 0));
-	hudBottom.sprite()->setBlendingMode(BLEND_ALPHA);
-	hudBottom.place(Vector3(0, 0, 0));
-
 	_ship = loadEntity("ship.json");
+	dbgLogger.error(_ship.name());
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
@@ -310,7 +383,10 @@ void MainState::startGame() {
 	_climbCharge = _thrustMaxCharge;
 	_diveCharge  = _thrustMaxCharge;
 
+//	EntityRef ship2 = _ship.firstChild();
+//	while(ship2.nextSibling().isValid()) ship2 = ship2.nextSibling();
 	EntityRef ship2 = _ship.clone(_ship);
+	dbgLogger.error(ship2.name());
 	ship2.sprite()->setColor(_levelColor);
 	ship2.sprite()->setTileIndex(1);
 	ship2.place(Vector3(0, 0, 0));
@@ -321,13 +397,16 @@ void MainState::startGame() {
 	for (int i = 0 ; i < _shipPartCount ; ++i)
 	{
 		_shipParts[i] = _ship.clone(_ship, "shipPart");
+		dbgLogger.error(_shipParts[i].name());
 		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
 		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 9: 12));
 		_shipParts[i].sprite()->setColor(_levelColor2);
 		Vector2 pos = partExpectedPosition(_shipShape, i);
 		_shipParts[i].place(Vector3(pos[0],pos[1],0));
 
+//		EntityRef part2 = _shipParts[i].firstChild();
 		EntityRef part2 = _shipParts[i].clone(_shipParts[i]);
+		dbgLogger.error(part2.name());
 		part2.sprite()->setColor(_levelColor);
 		part2.sprite()->setTileIndex(i + ((i<3)? 0: 3));
 		part2.place(Vector3(0, 0, 0));
@@ -338,22 +417,9 @@ void MainState::startGame() {
 	_distance = 0;
 	_score    = 0;
 
-	// ad-hoc value to compensate the fact that the baseline is wrong...
-	float tvOff = 8;
-	_scoreText = loadEntity("text.json", _root);
-	_scoreText.place(Vector3(1120, 1070 - tvOff, 0));
-	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
 	_texts.get(_scoreText)->setColor(_textColor);
-
-	_speedText = _scoreText.clone(_root);
-	_speedText.place(Vector3(230, 1070 - tvOff, 0));
-	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
-	_texts.get(_scoreText)->setColor(_textColor);
-
-	_distanceText = _scoreText.clone(_root);
-	_distanceText.place(Vector3(230, -tvOff, 0));
-	_texts.get(_distanceText)->setAnchor(Vector2(1, 0));
-	_texts.get(_scoreText)->setColor(_textColor);
+	_texts.get(_speedText)->setColor(_textColor);
+	_texts.get(_distanceText)->setColor(_textColor);
 
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
@@ -369,8 +435,13 @@ void MainState::startGame() {
 void MainState::updateTick() {
 	_inputs.sync();
 
-	if(_quitInput->justPressed())
+	if(_quitInput->justPressed()) {
 		quit();
+		return;
+	}
+	if(_restartInput->justPressed()) {
+		startGame((_currentLevel + 1) % _levelCount);
+	}
 
 	// Gameplay
 	double time    = double(_loop.frameTime()) / double(ONE_SEC);

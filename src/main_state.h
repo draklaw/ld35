@@ -66,7 +66,7 @@ public:
 	unsigned shipShapeCount() const;
 	Vector2 partExpectedPosition(unsigned shape, unsigned part) const;
 
-	void startGame();
+	void startGame(int level);
 	void updateTick();
 	void updateFrame();
 
@@ -109,6 +109,7 @@ protected:
 	unsigned   _fpsCount;
 
 	Input* _quitInput;
+	Input* _restartInput;
 	Input* _accelInput;
 	Input* _brakeInput;
 	Input* _climbInput;
@@ -131,6 +132,10 @@ protected:
 	Vec2 shipPosition();
 	Vec2 partPosition(unsigned part);
 	Box2 partBox (unsigned part);
+
+	int         _levelCount;
+	int         _currentLevel;
+	std::vector<Vector4> _levelColors;
 
 	float       _prevScrollPos;
 	float       _scrollPos;

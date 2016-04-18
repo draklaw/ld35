@@ -198,7 +198,7 @@ void Map::render(float scroll, float pDist, float screenWidth) {
 		Box2 bgBox(Vector2(0, 0), Vector2(1920, 1080));
 		Box2 bgTexBox(Vector2(bgScroll, 0), Vector2(bgScroll + 1920.f / bgTex->width(), 1));
 		renderer->addSprite(trans, bgBox, color, bgTexBox, bgTex,
-							Texture::TRILINEAR, BLEND_NONE);
+							Texture::TRILINEAR, BLEND_ALPHA);
 	}
 
 	// Warnings
