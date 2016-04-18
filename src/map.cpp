@@ -21,6 +21,8 @@
 
 #include <random>
 
+#include <lair/sys_sdl2/image_loader.h>
+
 #include <lair/ec/sprite_renderer.h>
 
 #include "main_state.h"
@@ -155,6 +157,11 @@ void Map::clear() {
 void Map::appendSection(unsigned i) {
 	lairAssert(i < _sections.size());
 	const ImageSP img = _sections[i].lock()->get();
+	appendSection(img);
+}
+
+
+void Map::appendSection(const ImageSP img) {
 	lairAssert(img->format() == Image::FormatRGBA8
 	        || img->format() == Image::FormatRGB8);
 	const uint8* pixels = reinterpret_cast<const uint8*>(img->data());
@@ -175,6 +182,15 @@ void Map::appendSection(unsigned i) {
 		}
 		_length += 1;
 	}
+}
+
+
+void Map::appendSection(const Path& path) {
+	dbgLogger.warning(path);
+	AssetSP asset = _state->loader()->loadAsset<ImageLoader>(path);
+	_state->loader()->waitAll();
+	ImageAspectSP aspect = asset->aspect<ImageAspect>();
+	appendSection(aspect->get());
 }
 
 

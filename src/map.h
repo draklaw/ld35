@@ -69,6 +69,8 @@ public:
 
 	void clear();
 	void appendSection(unsigned i);
+	void appendSection(const ImageSP aspect);
+	void appendSection(const Path& path);
 	void generate(unsigned seed, unsigned minLength, float difficulty,
 	              float variance=.3);
 

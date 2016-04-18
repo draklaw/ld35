@@ -19,7 +19,7 @@
 
 cmake_minimum_required(VERSION 2.8.12.1)
 
-project(fast_forward)
+project(shapeout)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 

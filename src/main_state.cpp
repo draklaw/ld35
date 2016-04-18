@@ -39,6 +39,16 @@
 #define FRAMERATE 60
 
 
+Vector4 parseColor(const Json::Value& color) {
+	lairAssert(color.isArray() && color.size() == 4);
+	Vector4 c;
+	for(int i = 0; i < 4; ++i) {
+		c(i) = color[i].asFloat() / 255.f;
+	}
+	return c;
+}
+
+
 MainState::MainState(Game* game)
 	: GameState(game),
 
@@ -69,7 +79,6 @@ MainState::MainState(Game* game)
 
       _map(this),
 
-      _levelCount   (5),
       _currentLevel (-1),
 
       _shipPartCount(6),
@@ -170,17 +179,11 @@ void MainState::initialize() {
 	_crashSound   = loader()->loadAsset<SoundLoader>("crash.wav");
 
 	_map.initialize();
-	_map.setBg(0, "lvl1_l2.png");
-	_map.setBg(1, "lvl1_l3.png");
 	_map.setBgScroll(0, .4);
 	_map.setBgScroll(1, .7);
 
-	_levelColors.push_back(Vector4(112, 46, 188, 255) / 255.f);
-	_levelColors.push_back(Vector4(27, 20, 133, 255) / 255.f);
-	_levelColors.push_back(Vector4(100, 215, 238, 255) / 255.f);
-	_levelColors.push_back(Vector4(0, 255, 0, 255) / 255.f);
-	_levelColors.push_back(Vector4(255, 183, 75, 255) / 255.f);
-	lairAssert(_levelColors.size() == _levelCount);
+	parseJson(_mapInfo, _game->dataPath() / "maps.json",
+	          "maps.json", log());
 
 	_shipShapes.push_back(Vector2(0,  1));
 	_shipShapes.push_back(Vector2(1,  1));
@@ -511,41 +514,21 @@ void MainState::startGame(int level) {
 	if(_ship.isValid())
 		_entities.destroyEntity(_ship);
 
-	_currentLevel = level % _levelCount;
+	_currentLevel = level % _mapInfo.size();
 
 	_pause = false;
 
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
 
-	switch(_currentLevel) {
-	case 0:
-		_map.setBg(0, "lvl1_l2.png");
-		_map.setBg(1, "lvl1_l3.png");
-		break;
-	case 1:
-		_map.setBg(0, "lvl2_l2.png");
-		_map.setBg(1, "lvl2_l3.png");
-		break;
-	case 2:
-		_map.setBg(0, "lvl3_l2.png");
-		_map.setBg(1, "lvl3_l3.png");
-		break;
-	case 3:
-		_map.setBg(0, "lvl4_l2.png");
-		_map.setBg(1, "lvl4_l3.png");
-		break;
-	case 4:
-		_map.setBg(0, "lvl6_l2.png");
-		_map.setBg(1, "lvl6_l3.png");
-		break;
-	}
-
-	_levelColor  = _levelColors[_currentLevel];
-	_levelColor2 = Vector4(0, 1, 1, .5);
-	_beamColor   = _levelColor2;
-	_laserColor  = Vector4(0, 1, 0, .7);
-	_textColor   = Vector4(0, 1, 0, 1);
+	const Json::Value& info = _mapInfo[_currentLevel];
+	_map.setBg(0, info["bg1"].asString());
+	_map.setBg(1, info["bg2"].asString());
+	_levelColor  = parseColor(info["color"]);
+	_levelColor2 = parseColor(info["alt_color"]);
+	_beamColor   = parseColor(info["beam_color"]);
+	_laserColor  = parseColor(info["laser_color"]);
+	_textColor   = parseColor(info["text_color"]);
 
 	_shipSoundSample = 0;
 	_lastPointSound  = -ONE_SEC;
@@ -604,7 +587,15 @@ void MainState::startGame(int level) {
 	renderer()->uploadPendingTextures();
 
 	// Need map images to be loaded.
-	_map.generate(0, 300, .5, 1);
+	//_map.generate(0, 300, .5, 1);
+	_map.clear();
+	const Json::Value& segments = info["segments"];
+	for(int i = 0; i < segments.size(); ++i) {
+		Path path = segments[i].asString();
+		if(!path.empty()) {
+			_map.appendSection(path);
+		}
+	}
 
 //	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 //	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);

@@ -152,7 +152,8 @@ protected:
 	EntityRef    _ship;
 	EntityVector _shipParts;
 
-	Map _map;
+	Json::Value  _mapInfo;
+	Map          _map;
 
 	enum AnimState {
 		ANIM_NONE,
