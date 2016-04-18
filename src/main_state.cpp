@@ -92,12 +92,12 @@ MainState::MainState(Game* game)
  * - Below .5, one tap does not reach one block ; above .8 it may jump two.
  * Below min speed (0.2 block/s), the ship halts and snaps to grid.
  * The ship should never go above max speed (0.5 block/f) for safety reasons.
- * When left adrift, the ship will lock in on a vertical block after .5s.
+ * When left adrift, the ship will line in, covering 10% of the gap each frame.
  */
       _vSpeedDamping (0.8),
       _vSpeedFloor   (0.2 * _blockSize / FRAMERATE),
       _vSpeedCap     (_blockSize / 2),
-      _vLockTime     (.5),
+      _vLockFactor   (0.1),
 
 /* Collisions above scratch threshold will bump the player.
  * Collisions above crash threshold will kill the player.
@@ -727,16 +727,6 @@ void MainState::updateTick() {
 		if (_partAlive[i])
 			collect (i);
 
-	// Snapping to grid and locking down vspeed.
-	if (std::abs(vspeed) < _vSpeedFloor)
-	{
-		float delta = std::fmod(shipPosition()[1],_blockSize);
-		if (delta > 1)
-			vspeed = (delta > _blockSize/2?1:-1) * delta * _vLockTime / FRAMERATE;
-		else
-			vspeed = 0;
-	}
-
 	// Shifting parts.
 	for (unsigned i = 0 ; i < _shipPartCount ; i++)
 		if (_partAlive[i])
@@ -752,8 +742,14 @@ void MainState::updateTick() {
 	if (std::abs(vspeed) > _vSpeedCap)
 		vspeed = std::min(std::max(vspeed, -_vSpeedCap), _vSpeedCap);
 
+
 	// Shifting ship.
 	shipPosition()[1] += vspeed;
+
+	// Halting ship and snapping to grid .
+	if (std::abs(vspeed) < _vSpeedFloor)
+		shipPosition()[1] -= _vLockFactor *
+		  (std::fmod(shipPosition()[1] + _blockSize/2,_blockSize) - _blockSize/2);
 
 	// Warning sound
 	int warningTileX = (_scrollPos + SCREEN_WIDTH + warningScrollDist()) / _blockSize;

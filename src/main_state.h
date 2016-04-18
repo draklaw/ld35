@@ -224,7 +224,7 @@ protected:
 	float _vSpeedDamping;
 	float _vSpeedFloor;
 	float _vSpeedCap;
-	float _vLockTime;
+	float _vLockFactor;
 
 	float _scratchThreshold;
 	float _crashThreshold;
