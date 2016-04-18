@@ -96,6 +96,9 @@ void Map::initialize() {
 	AssetSP tilesAsset = _state->loader()->loadAsset<ImageLoader>("tiles.png");
 	_tilesTex = _state->renderer()->createTexture(tilesAsset);
 
+	AssetSP warningAsset = _state->loader()->loadAsset<ImageLoader>("warning.png");
+	_warningTex = _state->renderer()->createTexture(warningAsset);
+
 	registerSection("segment_1.png");
 	registerSection("segment_2.png");
 	registerSection("segment_3.png");
@@ -177,32 +180,7 @@ void Map::generate(unsigned seed, unsigned minLength, float difficulty,
 }
 
 
-//void Map::updateComming(float scroll, float pDist, float screenWidth) {
-//	float rightScroll = scroll + screenWidth;
-//	unsigned beginCol = beginIndex(rightScroll / _state->blockSize());
-//	unsigned endCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
-
-//	_comming.
-//	for(unsigned row = 0; row < _nRows; ++ row) {
-//		bool gotPoint = false;
-//		for(unsigned i = beginCol; i < endCol; ++i) {
-//			const Block& b = _blocks[i];
-//			if(b.pos(1) == row) {
-//				if(b.type == WALL) {
-//					blocks.push_back(i);
-//					break;
-//				}
-//				if(b.type == POINT && !gotPoint) {
-//					blocks.push_back(i);
-//					gotPoint = true;
-//				}
-//			}
-//		}
-//	}
-//}
-
-
-void Map::render(float scroll) {
+void Map::render(float scroll, float pDist, float screenWidth) {
 	SpriteRenderer* renderer = _state->spriteRenderer();
 
 	_state->renderer()->uploadPendingTextures();
@@ -210,6 +188,7 @@ void Map::render(float scroll) {
 	Matrix4 trans = _state->screenTransform();
 	Vector4 color(1, 1, 1, 1);
 
+	// Backgrounds
 	for(int i = 0; i < 3; ++i) {
 		if(!_bgTex[i] || !_bgTex[i]->get())
 			continue;
@@ -222,6 +201,30 @@ void Map::render(float scroll) {
 							Texture::TRILINEAR, BLEND_NONE);
 	}
 
+	// Warnings
+	float rightScroll = scroll + screenWidth;
+	unsigned wbeginCol = beginIndex(rightScroll / _state->blockSize());
+	unsigned wendCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
+	TextureSP warningTex = _warningTex->get();
+	std::vector<float> warnings(_nRows, 0);
+	for(unsigned i = wbeginCol; i < wendCol; ++i) {
+		const Block& b = _blocks[i];
+		if(b.pos(1) != 0 && b.pos(1) < 21 && warnings[b.pos(1)] == 0 && b.type == WALL) {
+			warnings[b.pos(1)] = 1 - ((b.pos(0) + 1) * _state->blockSize() - scroll - screenWidth) / pDist;
+		}
+	}
+	for(unsigned i = 1; i < _nRows-1; ++i) {
+		if(warnings[i] > 0) {
+			Box2 pos(Vector2(screenWidth * (1 - warnings[i]), i * _state->blockSize()),
+			         Vector2(screenWidth * (2 - warnings[i]), (i+1) * _state->blockSize()));
+			Box2 texCoord(Vector2(0, 0), Vector2(1, 1));
+			Vector4 color(1, 0, 0, .5);
+			renderer->addSprite(trans, pos, color, texCoord, warningTex,
+			                    Texture::TRILINEAR, BLEND_ALPHA);
+		}
+	}
+
+	// Tiles
 	TextureSP tilesTex = _tilesTex->_get();
 	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
 
@@ -255,7 +258,7 @@ void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWid
 	unsigned endCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
 
 	std::vector<unsigned> blocks;
-	for(unsigned row = 0; row < _nRows; ++ row) {
+	for(unsigned row = 1; row < _nRows-1; ++ row) {
 		bool gotPoint = false;
 		for(unsigned i = beginCol; i < endCol; ++i) {
 			const Block& b = _blocks[i];
