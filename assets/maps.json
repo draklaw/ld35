@@ -14,7 +14,8 @@
 		],
 		"anims": [
 			[ 0, "intro" ]
-		]
+		],
+		"end_anim": "intro"
 	},
 	{
 		"bg1":         "lvl2_l2.png",

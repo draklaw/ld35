@@ -520,6 +520,7 @@ void MainState::startGame(int level) {
 
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
+	_levelFinished = false;
 
 	const Json::Value& info = _mapInfo[_currentLevel];
 	_map.setBg(0, info["bg1"].asString());
@@ -538,6 +539,8 @@ void MainState::startGame(int level) {
 	}
 	_mapAnimIndex = 0;
 
+
+
 	_shipSoundSample = 0;
 	_lastPointSound  = -ONE_SEC;
 	_warningTileX    = 0;
@@ -548,7 +551,8 @@ void MainState::startGame(int level) {
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
-	_shipHSpeed = 2000;
+	_minShipHSpeed = 2000;
+	_shipHSpeed = _minShipHSpeed;
 	_shipVSpeed = 0;
 	_climbCharge = _thrustMaxCharge;
 	_diveCharge  = _thrustMaxCharge;
@@ -613,6 +617,8 @@ void MainState::startGame(int level) {
 	_dialogText.place(Vector3(0, 0, 0));
 	_prevFrameTime = _loop.tickTime();
 
+	_entities.updateWorldTransform();
+
 	_animState = ANIM_NONE;
 }
 
@@ -634,6 +640,13 @@ void MainState::updateTick() {
 		++_mapAnimIndex;
 	}
 
+	bool levelFinished = _scrollPos >= _map.length() * _blockSize;
+	if(_animState == ANIM_NONE && levelFinished && !_levelFinished
+	&& _mapInfo[_currentLevel].isMember("end_anim")) {
+		playAnimation(_mapInfo[_currentLevel]["end_anim"].asString());
+	}
+	_levelFinished = levelFinished;
+
 	if(_skipInput->justPressed()) {
 		endAnimation();
 	}
@@ -643,6 +656,12 @@ void MainState::updateTick() {
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
 	if(_pause) {
+		_entities.updateWorldTransform();
+		return;
+	}
+
+	if(_levelFinished) {
+		startGame(_currentLevel + 1);
 		_entities.updateWorldTransform();
 		return;
 	}
@@ -658,7 +677,7 @@ void MainState::updateTick() {
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
 	if (_brakeInput->isPressed())
-		_shipHSpeed = std::max(_shipHSpeed - _braking, 1000.f);
+		_shipHSpeed = std::max(_shipHSpeed - _braking, _minShipHSpeed);
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * tickDur;

@@ -55,6 +55,7 @@ public:
 	unsigned endIndex(int col) const;
 
 	Box2 blockBox(int i) const;
+	int length() const { return _length; }
 
 	Box2 hit(const Box2& box, int bi, float dScroll) const;
 	Box2 pickup(const Box2& box, int bi, float dScroll);

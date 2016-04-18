@@ -184,6 +184,7 @@ protected:
 	float       _prevScrollPos;
 	float       _scrollPos;
 	float       _distance;
+	bool        _levelFinished;
 	unsigned    _score;
 	Vector4     _levelColor;
 	Vector4     _levelColor2;
@@ -191,6 +192,7 @@ protected:
 	Vector4     _laserColor;
 	Vector4     _textColor;
 
+	float       _minShipHSpeed;
 	float       _shipHSpeed;
 	float       _shipVSpeed;
 	float       _climbCharge;
