@@ -86,6 +86,7 @@ MainState::MainState(Game* game)
 
       _hSpeedDamping(500),
       _acceleration (400),
+      _minShipHSpeed(1000),
       _braking      (100),
 
 /* One full-charge tap up or down will instantly reach 1/8 of a block.
@@ -553,8 +554,7 @@ void MainState::startGame(int level) {
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
-	_minShipHSpeed = 2000;
-	_shipHSpeed = _minShipHSpeed;
+	_shipHSpeed = 2*_minShipHSpeed;
 	_shipVSpeed = 0;
 	_climbCharge = _thrustMaxCharge;
 	_diveCharge  = _thrustMaxCharge;
@@ -884,7 +884,7 @@ void MainState::collect (unsigned part)
 		if (_map.pickup(pBox, bi, dScroll).sizes()[1] > _crashThreshold)
 		{
 			_map.clearBlock(bi);
-			_score += _shipHSpeed / 1000 - 1;
+			_score += (_shipHSpeed / 1000) - 1;
 
 			if(_lastPointSound + ONE_SEC / 15 < int64(_loop.tickTime())) {
 				audio()->playSound(_pointSound, 0, CHANN_POINT);

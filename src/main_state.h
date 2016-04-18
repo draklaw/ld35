@@ -191,7 +191,6 @@ protected:
 	Vector4     _laserColor;
 	Vector4     _textColor;
 
-	float       _minShipHSpeed;
 	float       _shipHSpeed;
 	float       _shipVSpeed;
 	float       _climbCharge;
@@ -220,6 +219,7 @@ protected:
 
 	float _hSpeedDamping;
 	float _acceleration;
+	float _minShipHSpeed;
 	float _braking;
 
 	float _thrustMaxCharge;

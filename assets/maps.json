@@ -11,6 +11,7 @@
 		"point_color":   [  50, 255,  50, 255 ],
 		"min_score":   5500,
 		"segments": [
+			"segment_empty.png",
 			"segment_1.png", //200
 			"segment_A3.png", //600
 			"segment_2.png", //200
@@ -67,9 +68,12 @@
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [ 255, 255,  50, 255 ],
 		"segments": [
-			"segment_1.png",
-			"segment_2.png",
-			"segment_3.png"
+			"segment_empty.png",
+			"segment_31.png",
+			"segment_18.png",
+			"segment_A1.png",
+			"segment_12.png",
+			"segment_12.png"
 		],
 		"anims": [
 		]
