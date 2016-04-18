@@ -374,7 +374,7 @@ Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 
 
 float MainState::warningScrollDist() const {
-	return _shipHSpeed / 150 * _blockSize;
+	return _shipHSpeed;
 }
 
 
@@ -525,6 +525,8 @@ void MainState::startGame(int level) {
 	const Json::Value& info = _mapInfo[_currentLevel];
 	_map.setBg(0, info["bg1"].asString());
 	_map.setBg(1, info["bg2"].asString());
+	_map.setWarningColor(parseColor(info["warning_color"]));
+	_map.setPointColor(parseColor(info["point_color"]));
 	_levelColor  = parseColor(info["color"]);
 	_levelColor2 = parseColor(info["alt_color"]);
 	_beamColor   = parseColor(info["beam_color"]);

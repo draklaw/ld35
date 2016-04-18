@@ -145,6 +145,16 @@ void Map::setBgScroll(unsigned i, float scroll) {
 }
 
 
+void Map::setWarningColor(const Vector4& color) {
+	_warningColor = color;
+}
+
+
+void Map::setPointColor(const Vector4& color) {
+	_pointColor = color;
+}
+
+
 void Map::registerSection(const Path& path) {
 	AssetSP asset = _state->loader()->loadAsset<ImageLoader>(path);
 	_sections.push_back(asset->aspect<ImageAspect>());
@@ -243,23 +253,26 @@ void Map::render(float scroll, float pDist, float screenWidth) {
 
 	// Warnings
 	float rightScroll = scroll + screenWidth;
-	unsigned wbeginCol = beginIndex(rightScroll / _state->blockSize());
+	unsigned wbeginCol = beginIndex(rightScroll / _state->blockSize() - screenWidth);
 	unsigned wendCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
 	TextureSP warningTex = _warningTex->get();
 	std::vector<float> warnings(_nRows, 0);
 	for(unsigned i = wbeginCol; i < wendCol; ++i) {
 		const Block& b = _blocks[i];
-		if(b.pos(1) != 0 && b.pos(1) < 21 && warnings[b.pos(1)] == 0 && b.type == WALL) {
-			warnings[b.pos(1)] = 1 - ((b.pos(0) + 1) * _state->blockSize() - scroll - screenWidth) / pDist;
+		if(b.pos(1) != 0 && b.pos(1) < 21 /*&& warnings[b.pos(1)] == 0*/ && b.type == WALL) {
+			float w = (b.pos(0) + 1) * _state->blockSize() - scroll - screenWidth;
+			w = (w > 0)? 1 - w / pDist: 1 + w / screenWidth;
+			warnings[b.pos(1)] = std::max(warnings[b.pos(1)], w);
 		}
 	}
+	Vector4 wColor = _warningColor;
+	wColor(3) *= .7;
 	for(unsigned i = 1; i < _nRows-1; ++i) {
 		if(warnings[i] > 0) {
 			Box2 pos(Vector2(screenWidth * (1 - warnings[i]), i * _state->blockSize()),
 			         Vector2(screenWidth * (2 - warnings[i]), (i+1) * _state->blockSize()));
 			Box2 texCoord(Vector2(0, 0), Vector2(1, 1));
-			Vector4 color(1, 0, 0, .5);
-			renderer->addSprite(trans, pos, color, texCoord, warningTex,
+			renderer->addSprite(trans, pos, wColor, texCoord, warningTex,
 			                    Texture::TRILINEAR, BLEND_ALPHA);
 		}
 	}
@@ -288,8 +301,6 @@ void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWid
 	SpriteRenderer* renderer = _state->spriteRenderer();
 
 	Matrix4 trans = _state->screenTransform();
-	Vector4 colorPoint(.2, 1, .2, 1);
-	Vector4 colorWarning(1, .3, 0, 1);
 	TextureSP tilesTex = _tilesTex->_get();
 	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
 
@@ -332,7 +343,7 @@ void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWid
 		coords.min() = (coords.min() - a) * scale + a;
 		coords.max() = (coords.max() - a) * scale + a;
 
-		Vector4 color = (ti == PREVIEW_OFFSET)? colorWarning: colorPoint;
+		Vector4 color = (ti == PREVIEW_OFFSET)? _warningColor: _pointColor;
 		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
 							Texture::TRILINEAR, BLEND_ALPHA);
 	}
