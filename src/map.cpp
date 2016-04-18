@@ -28,6 +28,9 @@
 #include "map.h"
 
 
+#define NOHIT Box2(Vector2(0,0),Vector2(0,0))
+
+
 Box2 offsetBox(const Box2& box, const Vector2& offset) {
 	Box2 b = box;
 	b.min() += offset;
@@ -57,9 +60,8 @@ unsigned Map::endIndex(int col) const {
 
 
 Box2 Map::hit(const Box2& box, int bi, float dScroll) const {
-	//FIXME: Hack !
 	if (_blocks[bi].type != WALL)
-		return Box2(Vector2(0,0),Vector2(0,0));
+		return NOHIT;
 
 	Box2 bb = blockBox(bi);
 	bb.min() -= Vector2(dScroll, 0);
@@ -70,7 +72,7 @@ Box2 Map::hit(const Box2& box, int bi, float dScroll) const {
 
 Box2 Map::pickup(const Box2& box, int bi, float dScroll) {
 	if (_blocks[bi].type != POINT)
-		return Box2(Vector2(0,0),Vector2(0,0));
+		return NOHIT;
 
 	Box2 bb = blockBox(bi);
 	bb.min() -= Vector2(dScroll, 0);
@@ -98,10 +100,21 @@ void Map::initialize() {
 
 	AssetSP warningAsset = _state->loader()->loadAsset<ImageLoader>("warning.png");
 	_warningTex = _state->renderer()->createTexture(warningAsset);
-
 	registerSection("segment_1.png");
 	registerSection("segment_2.png");
 	registerSection("segment_3.png");
+	registerSection("segment_4.png");
+	registerSection("segment_5_hard.png");
+	registerSection("segment_5_normal.png");
+	registerSection("segment_6_normal.png");
+	registerSection("segment_6_obvious.png");
+	registerSection("segment_6_tricky.png");
+	registerSection("segment_empty.png");
+	registerSection("segment.png");
+	registerSection("segment_t0.png");
+	registerSection("segment_t1_long.png");
+	registerSection("segment_t1.png");
+	registerSection("segment_t2.png");
 }
 
 
