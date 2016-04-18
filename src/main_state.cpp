@@ -124,7 +124,7 @@ MainState::MainState(Game* game)
       _partBaseSpeed (_blockSize / 4),
       _partDropSpeed (_blockSize / 3),
       _snapDistance  (_blockSize * (6+1)),
-      _massRatio     (1.0/8)
+      _massRatio     (1.0/16)
 {
 	_entities.registerComponentManager(&_sprites);
 	_entities.registerComponentManager(&_texts);
@@ -601,7 +601,7 @@ void MainState::startGame(int level) {
 //	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);
 
 	_charSprite.place(Vector3(-550, 0, 0));
-	_dialogBg.place(Vector3(1920 - 96, -450, 0));
+	_dialogBg.place(Vector3(SCREEN_WIDTH - 96, -450, 0));
 	_dialogText.place(Vector3(0, 0, 0));
 	_prevFrameTime = _loop.tickTime();
 	playAnimation("intro");
@@ -642,9 +642,8 @@ void MainState::updateTick() {
 		float damping = (1 + _shipHSpeed / _hSpeedDamping);
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
-	if (_brakeInput->isPressed()) {
-		_shipHSpeed -= _braking;
-	}
+	if (_brakeInput->isPressed())
+		_shipHSpeed = std::max(_shipHSpeed - _braking, 1000.f);
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * tickDur;
@@ -826,14 +825,13 @@ void MainState::collect (unsigned part)
 		if (_map.pickup(pBox, bi, dScroll).sizes()[1] > _crashThreshold)
 		{
 			_map.clearBlock(bi);
-			_score++;
-		}
-	}
+			_score += _shipHSpeed / 1000 - 1;
 
-	int64 soundDelay = ONE_SEC / 15;
-	if(_score != prevScore && _lastPointSound + soundDelay < int64(_loop.tickTime())) {
-		audio()->playSound(_pointSound, 0, CHANN_POINT);
-		_lastPointSound = _loop.tickTime();
+			if(_lastPointSound + ONE_SEC / 15 < int64(_loop.tickTime())) {
+				audio()->playSound(_pointSound, 0, CHANN_POINT)-1;
+				_lastPointSound = _loop.tickTime();
+			}
+		}
 	}
 }
 
