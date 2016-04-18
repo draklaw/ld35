@@ -69,11 +69,12 @@
 		"point_color":   [ 255, 255,  50, 255 ],
 		"segments": [
 			"segment_empty.png",
-			"segment_31.png",
+			"segment_3.png",
+			"segment_6.png",
 			"segment_18.png",
 			"segment_A1.png",
 			"segment_12.png",
-			"segment_12.png"
+			"segment_17.png"
 		],
 		"anims": [
 		]

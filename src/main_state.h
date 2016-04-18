@@ -220,7 +220,7 @@ protected:
 	float _hSpeedDamping;
 	float _acceleration;
 	float _minShipHSpeed;
-	float _braking;
+	float _brakingFactor;
 
 	float _thrustMaxCharge;
 	float _thrustRateCharge;

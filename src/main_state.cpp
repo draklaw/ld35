@@ -87,7 +87,7 @@ MainState::MainState(Game* game)
       _hSpeedDamping(500),
       _acceleration (400),
       _minShipHSpeed(1000),
-      _braking      (100),
+      _brakingFactor(0.99),
 
 /* One full-charge tap up or down will instantly reach 1/8 of a block.
  * - This is about enough for a "human" tap at 60FPS to move one block away.
@@ -692,7 +692,7 @@ void MainState::updateTick() {
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
 	if (alive && _brakeInput->isPressed())
-		_shipHSpeed = std::max(_shipHSpeed - _braking, _minShipHSpeed);
+		_shipHSpeed = std::max(_shipHSpeed * _brakingFactor, _minShipHSpeed);
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * tickDur;
