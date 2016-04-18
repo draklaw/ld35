@@ -37,11 +37,23 @@
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
-			"segment_1.png",
-			"segment_2.png",
-			"segment_3.png"
+			"segment_empty.png",
+			"segment_21.png",
+			"segment_22.png",
+			"segment_empty.png",
+			"segment_21.png",
+			"segment_22.png",
+			"segment_empty.png",
+			"segment_21.png",
+			"segment_22.png",
+			"segment_empty.png",
+			"segment_19.png",
+			"segment_20.png",
+			"segment_empty.png",
+			"segment_14.png"
 		],
 		"anims": [
+			[0, "stretching"]
 		]
 	},
 	{

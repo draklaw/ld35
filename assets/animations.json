@@ -11,5 +11,14 @@
 		[ "show_char", "mecano.png" ],
 		[ "show_text", "Sorry, but that's not good enough. Retry." ],
 		[ "end_dialog" ]
+	],
+	"stretching": [
+		[ "show_char", "mecano.png" ],
+		[ "show_text", "Now we're going to practice stretching and shrinking your ship. Lock yourself on the middle of the map, then deploy your modules one step at a time, following the markers. Once you're at full size, retract your modules in the same fashion." ],
+		[ "show_text", "The training pattern will repeat itself twice, then you're on your own. Trying climbing and diving in sync once your reach the tunnels. The last part expects you to stretch as wide as you can, and get yourself aligned with the pellets." ],
+		[ "hide_char" ],
+		[ "show_char", "hero.png" ],
+		[ "show_text", "Yeah, yeah, I know all this already. Been there, done that. I also remember what used to happen to the poor bastards that didn't align themselves properly through the last section..." ],
+		[ "end_dialog" ]
 	]
 }
