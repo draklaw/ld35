@@ -175,7 +175,6 @@ protected:
 	Vec2 partPosition(unsigned part);
 	Box2 partBox (unsigned part);
 
-	int         _levelCount;
 	int         _currentLevel;
 	std::vector<Vector4> _levelColors;
 
@@ -204,6 +203,7 @@ protected:
 	int         _warningTileX;
 	std::vector<bool> _warningMap;
 
+	int64                _deathTimer;
 	std::vector<bool>    _partAlive;
 	unsigned             _shipShape;
 

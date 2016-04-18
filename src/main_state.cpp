@@ -539,7 +539,7 @@ void MainState::startGame(int level) {
 	}
 	_mapAnimIndex = 0;
 
-
+	_deathTimer = -1;
 
 	_shipSoundSample = 0;
 	_lastPointSound  = -ONE_SEC;
@@ -631,17 +631,21 @@ void MainState::updateTick() {
 		return;
 	}
 	if(_restartInput->justPressed()) {
-		startGame((_currentLevel + 1) % _levelCount);
+		startGame((_currentLevel + 1) % _mapInfo.size());
 	}
 
-	if(_animState == ANIM_NONE && _mapAnimIndex < _mapAnims.size()
+	bool alive = _deathTimer < 0;
+	if(!alive)
+		_deathTimer += _loop.tickDuration();
+
+	if(alive && _animState == ANIM_NONE && _mapAnimIndex < _mapAnims.size()
 	&& int(_scrollPos) >= _mapAnims[_mapAnimIndex].first) {
 		playAnimation(_mapAnims[_mapAnimIndex].second);
 		++_mapAnimIndex;
 	}
 
 	bool levelFinished = _scrollPos >= _map.length() * _blockSize;
-	if(_animState == ANIM_NONE && levelFinished && !_levelFinished
+	if(alive && _animState == ANIM_NONE && levelFinished && !_levelFinished
 	&& _mapInfo[_currentLevel].isMember("end_anim")) {
 		playAnimation(_mapInfo[_currentLevel]["end_anim"].asString());
 	}
@@ -660,23 +664,29 @@ void MainState::updateTick() {
 		return;
 	}
 
-	if(_levelFinished) {
+	if(alive && _levelFinished) {
 		startGame(_currentLevel + 1);
 		_entities.updateWorldTransform();
 		return;
 	}
 
+	if(_deathTimer > int64(ONE_SEC)) {
+		startGame(_currentLevel);
+		_entities.updateWorldTransform();
+		return;
+	}
+
 	// Shapeshift !
-	if(_stretchInput->justPressed()) { ++_shipShape; }
-	if(_shrinkInput->justPressed()) { --_shipShape; }
+	if(alive && _stretchInput->justPressed()) { ++_shipShape; }
+	if(alive && _shrinkInput->justPressed()) { --_shipShape; }
 	_shipShape = std::max(0, std::min(int(shipShapeCount()) - 1, int(_shipShape)));
 
 	// Horizontal control and physics.
-	if (_accelInput->isPressed()) {
+	if (alive && _accelInput->isPressed()) {
 		float damping = (1 + _shipHSpeed / _hSpeedDamping);
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
-	if (_brakeInput->isPressed())
+	if (alive && _brakeInput->isPressed())
 		_shipHSpeed = std::max(_shipHSpeed - _braking, _minShipHSpeed);
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
@@ -712,52 +722,57 @@ void MainState::updateTick() {
 	_diveCharge  = std::min(_diveCharge  + _thrustRateCharge, _thrustMaxCharge);
 
 	// Activating thrusters.
-	if (_climbInput->justPressed()) {
+	if (alive && _climbInput->justPressed()) {
 		vspeed += _climbCharge;
 		_climbCharge = 0;
 	}
-	if (_diveInput->justPressed()) {
+	if (alive && _diveInput->justPressed()) {
 		vspeed -= _diveCharge;
 		_diveCharge = 0;
 	}
-	if (_climbInput->isPressed()) { vspeed += _thrustPower; }
-	if (_diveInput->isPressed())  { vspeed -= _thrustPower; }
+	if (alive && _climbInput->isPressed()) { vspeed += _thrustPower; }
+	if (alive && _diveInput->isPressed())  { vspeed -= _thrustPower; }
 
 	// Automatic vertical slowdown.
-	if ( !(_climbInput->isPressed() || _diveInput->isPressed()) )
+	if ( alive && !(_climbInput->isPressed() || _diveInput->isPressed()) )
 		vspeed *= _vSpeedDamping;
 
-	// Bouncing (or crashing) on walls.
-	float bump = collide(_shipPartCount);
-	if (bump == INFINITY)
-		dbgLogger.error("u ded. 'sploded hed");
-	else if (bump != 0)
-		vspeed = bump;
-
-	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-	{
-		if (!_partAlive[i]) { continue; }
-
-		bump = collide(i);
-		if (bump == INFINITY)
-			destroyPart(i);
-		else if (bump != 0)
-			partSpeeds[i] = Vector2(partSpeeds[i][0],bump);
-	}
-
-	// Looting
-	collect (_shipPartCount);
-	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-		if (_partAlive[i])
-			collect (i);
-
-	// Shifting parts.
-	for (unsigned i = 0 ; i < _shipPartCount ; i++)
-		if (_partAlive[i])
-		{
-			partPosition(i) += partSpeeds[i];
-			magDrag += partSpeeds[i][1];
+	if(alive) {
+		// Bouncing (or crashing) on walls.
+		float bump = collide(_shipPartCount);
+		if (bump == INFINITY) {
+			_deathTimer = 0;
+			audio()->playSound(_crashSound, 0, CHANN_CRASH);
+			dbgLogger.error("u ded. 'sploded hed");
 		}
+		else if (bump != 0)
+			vspeed = bump;
+
+		for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+		{
+			if (!_partAlive[i]) { continue; }
+
+			bump = collide(i);
+			if (bump == INFINITY)
+				destroyPart(i);
+			else if (bump != 0)
+				partSpeeds[i] = Vector2(partSpeeds[i][0],bump);
+		}
+
+		// Looting
+		collect (_shipPartCount);
+		for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+			if (_partAlive[i])
+				collect (i);
+
+		// Shifting parts.
+		for (unsigned i = 0 ; i < _shipPartCount ; i++)
+			if (_partAlive[i])
+			{
+				partPosition(i) += partSpeeds[i];
+				magDrag += partSpeeds[i][1];
+			}
+	}
 
 	// In Soviet Russia, parts gather you !
 	vspeed += -magDrag * _massRatio;
@@ -768,12 +783,17 @@ void MainState::updateTick() {
 
 
 	// Shifting ship.
-	shipPosition()[1] += vspeed;
+	if (alive)
+		shipPosition()[1] += vspeed;
+	else
+		shipPosition()[1] -= _partDropSpeed;
 
-	// Halting ship and snapping to grid .
-	if (std::abs(vspeed) < _vSpeedFloor)
-		shipPosition()[1] -= _vLockFactor *
-		  (std::fmod(shipPosition()[1] + _blockSize/2,_blockSize) - _blockSize/2);
+	if(alive) {
+		// Halting ship and snapping to grid .
+		if (std::abs(vspeed) < _vSpeedFloor)
+			shipPosition()[1] -= _vLockFactor *
+			  (std::fmod(shipPosition()[1] + _blockSize/2,_blockSize) - _blockSize/2);
+	}
 
 	// Warning sound
 	int warningTileX = (_scrollPos + SCREEN_WIDTH + warningScrollDist()) / _blockSize;
@@ -1006,8 +1026,8 @@ void MainState::renderBeams(float interp) {
 
 void MainState::resizeEvent() {
 	Box3 viewBox(Vector3::Zero(),
-	             Vector3(1080 * window()->width() / window()->height(),
-	                     1080,
+	             Vector3(SCREEN_HEIGHT * window()->width() / window()->height(),
+	                     SCREEN_HEIGHT,
 	                     1));
 	_camera.setViewBox(viewBox);
 	renderer()->context()->viewport(0, 0, window()->width(), window()->height());
