@@ -76,13 +76,13 @@ void SplashState::initialize() {
 
 	_modelRoot = _entities.createEntity(_entities.root(), "modelRoot");
 
-	EntityRef sprite = loadEntity("bg.json", _entities.root());
-	sprite.place(Vector3(120, 90, .5));
+	EntityRef sprite = loadEntity("titlescreen.json", _entities.root());
+	sprite.place(Vector3(0, 0, 0));
 
-	EntityRef text = loadEntity("text.json", _entities.root());
-	text.place(Vector3(160, 90, .5));
+//	EntityRef text = loadEntity("text.json", _entities.root());
+//	text.place(Vector3(160, 90, .5));
 
-	loader()->load<SoundLoader>("sound.ogg");
+//	loader()->load<SoundLoader>("sound.ogg");
 
 	loader()->waitAll();
 
@@ -140,7 +140,7 @@ Game* SplashState::game() {
 
 
 void SplashState::displaySplash() {
-	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
+//	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 }
 
 
@@ -184,9 +184,11 @@ void SplashState::updateFrame() {
 
 void SplashState::resizeEvent() {
 	Box3 viewBox(Vector3::Zero(),
-	             Vector3(window()->width()  / 4., // Big pixels
-	                     window()->height() / 4., 1));
+	             Vector3(1080 * window()->width() / window()->height(),
+	                     1080,
+	                     1));
 	_camera.setViewBox(viewBox);
+	renderer()->context()->viewport(0, 0, window()->width(), window()->height());
 }
 
 

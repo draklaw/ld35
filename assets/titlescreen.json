@@ -1,0 +1,7 @@
+{
+    "name":   "bg",
+    "sprite": {
+        "sprite":        "titlescreen.png",
+        "texture_flags": "bilinear"
+    }
+}

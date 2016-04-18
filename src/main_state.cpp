@@ -1006,8 +1006,8 @@ void MainState::renderBeams(float interp) {
 
 void MainState::resizeEvent() {
 	Box3 viewBox(Vector3::Zero(),
-	             Vector3(SCREEN_HEIGHT * window()->width() / window()->height(),
-	                     SCREEN_HEIGHT,
+	             Vector3(1080 * window()->width() / window()->height(),
+	                     1080,
 	                     1));
 	_camera.setViewBox(viewBox);
 	renderer()->context()->viewport(0, 0, window()->width(), window()->height());
