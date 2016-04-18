@@ -6,5 +6,10 @@
 		[ "show_char", "hero.png" ],
 		[ "show_text", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." ],
 		[ "end_dialog" ]
+	],
+	"fail": [
+		[ "show_char", "mecano.png" ],
+		[ "show_text", "Sorry, but that's not good enough. Retry." ],
+		[ "end_dialog" ]
 	]
 }

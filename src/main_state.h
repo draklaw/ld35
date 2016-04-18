@@ -152,7 +152,10 @@ protected:
 	EntityRef    _ship;
 	EntityVector _shipParts;
 
-	Map _map;
+	Json::Value  _mapInfo;
+	std::vector<std::pair<int, std::string>> _mapAnims;
+	int          _mapAnimIndex;
+	Map          _map;
 
 	enum AnimState {
 		ANIM_NONE,
@@ -172,7 +175,6 @@ protected:
 	Vec2 partPosition(unsigned part);
 	Box2 partBox (unsigned part);
 
-	int         _levelCount;
 	int         _currentLevel;
 	std::vector<Vector4> _levelColors;
 
@@ -181,13 +183,15 @@ protected:
 	float       _prevScrollPos;
 	float       _scrollPos;
 	float       _distance;
-	unsigned    _score;
+	bool        _levelFinished;
+	float       _score;
 	Vector4     _levelColor;
 	Vector4     _levelColor2;
 	Vector4     _beamColor;
 	Vector4     _laserColor;
 	Vector4     _textColor;
 
+	float       _minShipHSpeed;
 	float       _shipHSpeed;
 	float       _shipVSpeed;
 	float       _climbCharge;
@@ -199,6 +203,7 @@ protected:
 	int         _warningTileX;
 	std::vector<bool> _warningMap;
 
+	int64                _deathTimer;
 	std::vector<bool>    _partAlive;
 	unsigned             _shipShape;
 

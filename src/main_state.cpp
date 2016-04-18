@@ -39,6 +39,16 @@
 #define FRAMERATE 60
 
 
+Vector4 parseColor(const Json::Value& color) {
+	lairAssert(color.isArray() && color.size() == 4);
+	Vector4 c;
+	for(int i = 0; i < 4; ++i) {
+		c(i) = color[i].asFloat() / 255.f;
+	}
+	return c;
+}
+
+
 MainState::MainState(Game* game)
 	: GameState(game),
 
@@ -69,7 +79,6 @@ MainState::MainState(Game* game)
 
       _map(this),
 
-      _levelCount   (5),
       _currentLevel (-1),
 
       _shipPartCount(6),
@@ -170,17 +179,11 @@ void MainState::initialize() {
 	_crashSound   = loader()->loadAsset<SoundLoader>("crash.wav");
 
 	_map.initialize();
-	_map.setBg(0, "lvl1_l2.png");
-	_map.setBg(1, "lvl1_l3.png");
 	_map.setBgScroll(0, .4);
 	_map.setBgScroll(1, .7);
 
-	_levelColors.push_back(Vector4(112, 46, 188, 255) / 255.f);
-	_levelColors.push_back(Vector4(27, 20, 133, 255) / 255.f);
-	_levelColors.push_back(Vector4(100, 215, 238, 255) / 255.f);
-	_levelColors.push_back(Vector4(0, 255, 0, 255) / 255.f);
-	_levelColors.push_back(Vector4(255, 183, 75, 255) / 255.f);
-	lairAssert(_levelColors.size() == _levelCount);
+	parseJson(_mapInfo, _game->dataPath() / "maps.json",
+	          "maps.json", log());
 
 	_shipShapes.push_back(Vector2(0,  1));
 	_shipShapes.push_back(Vector2(1,  1));
@@ -371,7 +374,7 @@ Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 
 
 float MainState::warningScrollDist() const {
-	return _shipHSpeed / 150 * _blockSize;
+	return _shipHSpeed;
 }
 
 
@@ -511,41 +514,34 @@ void MainState::startGame(int level) {
 	if(_ship.isValid())
 		_entities.destroyEntity(_ship);
 
-	_currentLevel = level % _levelCount;
+	_currentLevel = level % _mapInfo.size();
 
 	_pause = false;
 
 	_scrollPos     = 0;
 	_prevScrollPos = _scrollPos;
+	_levelFinished = false;
 
-	switch(_currentLevel) {
-	case 0:
-		_map.setBg(0, "lvl1_l2.png");
-		_map.setBg(1, "lvl1_l3.png");
-		break;
-	case 1:
-		_map.setBg(0, "lvl2_l2.png");
-		_map.setBg(1, "lvl2_l3.png");
-		break;
-	case 2:
-		_map.setBg(0, "lvl3_l2.png");
-		_map.setBg(1, "lvl3_l3.png");
-		break;
-	case 3:
-		_map.setBg(0, "lvl4_l2.png");
-		_map.setBg(1, "lvl4_l3.png");
-		break;
-	case 4:
-		_map.setBg(0, "lvl6_l2.png");
-		_map.setBg(1, "lvl6_l3.png");
-		break;
+	const Json::Value& info = _mapInfo[_currentLevel];
+	_map.setBg(0, info["bg1"].asString());
+	_map.setBg(1, info["bg2"].asString());
+	_map.setWarningColor(parseColor(info["warning_color"]));
+	_map.setPointColor(parseColor(info["point_color"]));
+	_levelColor  = parseColor(info["color"]);
+	_levelColor2 = parseColor(info["alt_color"]);
+	_beamColor   = parseColor(info["beam_color"]);
+	_laserColor  = parseColor(info["laser_color"]);
+	_textColor   = parseColor(info["text_color"]);
+
+	const Json::Value& mapAnims = info["anims"];
+	_mapAnims.clear();
+	for(int i = 0; i < mapAnims.size(); ++i) {
+		_mapAnims.push_back(std::make_pair(mapAnims[i][0].asInt(),
+		                                   mapAnims[i][1].asString()));
 	}
+	_mapAnimIndex = 0;
 
-	_levelColor  = _levelColors[_currentLevel];
-	_levelColor2 = Vector4(0, 1, 1, .5);
-	_beamColor   = _levelColor2;
-	_laserColor  = Vector4(0, 1, 0, .7);
-	_textColor   = Vector4(0, 1, 0, 1);
+	_deathTimer = -1;
 
 	_shipSoundSample = 0;
 	_lastPointSound  = -ONE_SEC;
@@ -557,7 +553,8 @@ void MainState::startGame(int level) {
 	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
-	_shipHSpeed = 2000;
+	_minShipHSpeed = 2000;
+	_shipHSpeed = _minShipHSpeed;
 	_shipVSpeed = 0;
 	_climbCharge = _thrustMaxCharge;
 	_diveCharge  = _thrustMaxCharge;
@@ -604,7 +601,15 @@ void MainState::startGame(int level) {
 	renderer()->uploadPendingTextures();
 
 	// Need map images to be loaded.
-	_map.generate(0, 300, .5, 1);
+	//_map.generate(0, 300, .5, 1);
+	_map.clear();
+	const Json::Value& segments = info["segments"];
+	for(int i = 0; i < segments.size(); ++i) {
+		Path path = segments[i].asString();
+		if(!path.empty()) {
+			_map.appendSection(path);
+		}
+	}
 
 //	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 //	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);
@@ -613,7 +618,10 @@ void MainState::startGame(int level) {
 	_dialogBg.place(Vector3(SCREEN_WIDTH - 96, -450, 0));
 	_dialogText.place(Vector3(0, 0, 0));
 	_prevFrameTime = _loop.tickTime();
-	playAnimation("intro");
+
+	_entities.updateWorldTransform();
+
+	_animState = ANIM_NONE;
 }
 
 
@@ -625,8 +633,28 @@ void MainState::updateTick() {
 		return;
 	}
 	if(_restartInput->justPressed()) {
-		startGame((_currentLevel + 1) % _levelCount);
+		startGame((_currentLevel + 1) % _mapInfo.size());
 	}
+
+	bool alive = _deathTimer < 0;
+	if(!alive)
+		_deathTimer += _loop.tickDuration();
+
+	if(alive && _animState == ANIM_NONE && _mapAnimIndex < _mapAnims.size()
+	&& int(_scrollPos) >= _mapAnims[_mapAnimIndex].first) {
+		playAnimation(_mapAnims[_mapAnimIndex].second);
+		++_mapAnimIndex;
+	}
+
+	bool levelFinished = _scrollPos >= _map.length() * _blockSize;
+	bool levelSucceded = _score >= _mapInfo[_currentLevel].get("min_score", 0).asFloat();
+	if(alive && _animState == ANIM_NONE && levelFinished && !_levelFinished) {
+		std::string anim = _mapInfo[_currentLevel]
+		        .get(levelSucceded? "end_anim": "fail_anim", "").asString();
+		if(!anim.empty())
+			playAnimation(anim);
+	}
+	_levelFinished = levelFinished;
 
 	if(_skipInput->justPressed()) {
 		endAnimation();
@@ -641,18 +669,30 @@ void MainState::updateTick() {
 		return;
 	}
 
+	if(alive && _levelFinished) {
+		startGame(_currentLevel + levelSucceded);
+		_entities.updateWorldTransform();
+		return;
+	}
+
+	if(_deathTimer > int64(ONE_SEC)) {
+		startGame(_currentLevel);
+		_entities.updateWorldTransform();
+		return;
+	}
+
 	// Shapeshift !
-	if(_stretchInput->justPressed()) { ++_shipShape; }
-	if(_shrinkInput->justPressed()) { --_shipShape; }
+	if(alive && _stretchInput->justPressed()) { ++_shipShape; }
+	if(alive && _shrinkInput->justPressed()) { --_shipShape; }
 	_shipShape = std::max(0, std::min(int(shipShapeCount()) - 1, int(_shipShape)));
 
 	// Horizontal control and physics.
-	if (_accelInput->isPressed()) {
+	if (alive && _accelInput->isPressed()) {
 		float damping = (1 + _shipHSpeed / _hSpeedDamping);
 		_shipHSpeed += _acceleration / (damping * damping);
 	}
-	if (_brakeInput->isPressed())
-		_shipHSpeed = std::max(_shipHSpeed - _braking, 1000.f);
+	if (alive && _brakeInput->isPressed())
+		_shipHSpeed = std::max(_shipHSpeed - _braking, _minShipHSpeed);
 
 	_shipHSpeed = std::max(_shipHSpeed, 0.f);
 	_scrollPos += _shipHSpeed * tickDur;
@@ -687,52 +727,57 @@ void MainState::updateTick() {
 	_diveCharge  = std::min(_diveCharge  + _thrustRateCharge, _thrustMaxCharge);
 
 	// Activating thrusters.
-	if (_climbInput->justPressed()) {
+	if (alive && _climbInput->justPressed()) {
 		vspeed += _climbCharge;
 		_climbCharge = 0;
 	}
-	if (_diveInput->justPressed()) {
+	if (alive && _diveInput->justPressed()) {
 		vspeed -= _diveCharge;
 		_diveCharge = 0;
 	}
-	if (_climbInput->isPressed()) { vspeed += _thrustPower; }
-	if (_diveInput->isPressed())  { vspeed -= _thrustPower; }
+	if (alive && _climbInput->isPressed()) { vspeed += _thrustPower; }
+	if (alive && _diveInput->isPressed())  { vspeed -= _thrustPower; }
 
 	// Automatic vertical slowdown.
-	if ( !(_climbInput->isPressed() || _diveInput->isPressed()) )
+	if ( alive && !(_climbInput->isPressed() || _diveInput->isPressed()) )
 		vspeed *= _vSpeedDamping;
 
-	// Bouncing (or crashing) on walls.
-	float bump = collide(_shipPartCount);
-	if (bump == INFINITY)
-		dbgLogger.error("u ded. 'sploded hed");
-	else if (bump != 0)
-		vspeed = bump;
-
-	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-	{
-		if (!_partAlive[i]) { continue; }
-
-		bump = collide(i);
-		if (bump == INFINITY)
-			destroyPart(i);
-		else if (bump != 0)
-			partSpeeds[i] = Vector2(partSpeeds[i][0],bump);
-	}
-
-	// Looting
-	collect (_shipPartCount);
-	for (unsigned i = 0 ; i < _shipPartCount ; ++i)
-		if (_partAlive[i])
-			collect (i);
-
-	// Shifting parts.
-	for (unsigned i = 0 ; i < _shipPartCount ; i++)
-		if (_partAlive[i])
-		{
-			partPosition(i) += partSpeeds[i];
-			magDrag += partSpeeds[i][1];
+	if(alive) {
+		// Bouncing (or crashing) on walls.
+		float bump = collide(_shipPartCount);
+		if (bump == INFINITY) {
+			_deathTimer = 0;
+			audio()->playSound(_crashSound, 0, CHANN_CRASH);
+			dbgLogger.error("u ded. 'sploded hed");
 		}
+		else if (bump != 0)
+			vspeed = bump;
+
+		for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+		{
+			if (!_partAlive[i]) { continue; }
+
+			bump = collide(i);
+			if (bump == INFINITY)
+				destroyPart(i);
+			else if (bump != 0)
+				partSpeeds[i] = Vector2(partSpeeds[i][0],bump);
+		}
+
+		// Looting
+		collect (_shipPartCount);
+		for (unsigned i = 0 ; i < _shipPartCount ; ++i)
+			if (_partAlive[i])
+				collect (i);
+
+		// Shifting parts.
+		for (unsigned i = 0 ; i < _shipPartCount ; i++)
+			if (_partAlive[i])
+			{
+				partPosition(i) += partSpeeds[i];
+				magDrag += partSpeeds[i][1];
+			}
+	}
 
 	// In Soviet Russia, parts gather you !
 	vspeed += -magDrag * _massRatio;
@@ -743,12 +788,17 @@ void MainState::updateTick() {
 
 
 	// Shifting ship.
-	shipPosition()[1] += vspeed;
+	if (alive)
+		shipPosition()[1] += vspeed;
+	else
+		shipPosition()[1] -= _partDropSpeed;
 
-	// Halting ship and snapping to grid .
-	if (std::abs(vspeed) < _vSpeedFloor)
-		shipPosition()[1] -= _vLockFactor *
-		  (std::fmod(shipPosition()[1] + _blockSize/2,_blockSize) - _blockSize/2);
+	if(alive) {
+		// Halting ship and snapping to grid .
+		if (std::abs(vspeed) < _vSpeedFloor)
+			shipPosition()[1] -= _vLockFactor *
+			  (std::fmod(shipPosition()[1] + _blockSize/2,_blockSize) - _blockSize/2);
+	}
 
 	// Warning sound
 	int warningTileX = (_scrollPos + SCREEN_WIDTH + warningScrollDist()) / _blockSize;
@@ -837,7 +887,7 @@ void MainState::collect (unsigned part)
 			_score += _shipHSpeed / 1000 - 1;
 
 			if(_lastPointSound + ONE_SEC / 15 < int64(_loop.tickTime())) {
-				audio()->playSound(_pointSound, 0, CHANN_POINT)-1;
+				audio()->playSound(_pointSound, 0, CHANN_POINT);
 				_lastPointSound = _loop.tickTime();
 			}
 		}
@@ -869,7 +919,7 @@ void MainState::updateFrame() {
 	snprintf(buff, BUFSIZE, "%.2f km", _distance/1000);
 	_texts.get(_distanceText)->setText(buff);
 
-	snprintf(buff, BUFSIZE, "%d", _score);
+	snprintf(buff, BUFSIZE, "%.0f", _score*1000.0);
 	_texts.get(_scoreText)->setText(buff);
 
 	// Killin' parts !

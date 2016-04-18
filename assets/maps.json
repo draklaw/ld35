@@ -1,0 +1,132 @@
+[
+	{
+		"bg1":         "lvl1_l2.png",
+		"bg2":         "lvl1_l3.png",
+		"color":         [ 112,  46, 188, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [   0, 255,   0, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [ 255,   0,   0, 255 ],
+		"point_color":   [  50, 255,  50, 255 ],
+		"min_score":   500,
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+			[ 0, "intro" ]
+		],
+		"end_anim":  "intro",
+		"fail_anim": "fail"
+	},
+	{
+		"bg1":         "lvl2_l2.png",
+		"bg2":         "lvl2_l3.png",
+		"color":         [  27,  20, 133, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [   0, 255,   0, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [ 255,   0,   0, 255 ],
+		"point_color":   [  50, 255,  50, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+		]
+	},
+	{
+		"bg1":         "lvl3_l2.png",
+		"bg2":         "lvl3_l3.png",
+		"color":         [ 100, 215, 238, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [ 255, 255,   0, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [ 255,   0,   0, 255 ],
+		"point_color":   [ 255, 255,  50, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+		]
+	},
+	{
+		"bg1":         "lvl4_l2.png",
+		"bg2":         "lvl4_l3.png",
+		"color":         [  24, 255,  66, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [ 255,   0, 255, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [   0,   0, 255, 255 ],
+		"point_color":   [ 255,  50, 255, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+		]
+	},
+	{
+		"bg1":         "lvl5_l2.png",
+		"bg2":         "lvl5_l3.png",
+		"color":         [ 250, 255,  36, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [   0, 255,   0, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [ 255,   0,   0, 255 ],
+		"point_color":   [  50, 255,  50, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+		]
+	},
+	{
+		"bg1":         "lvl6_l2.png",
+		"bg2":         "lvl6_l3.png",
+		"color":         [ 255, 183,  75, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [   0, 255,   0, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [ 255,   0,   0, 255 ],
+		"point_color":   [  50, 255,  50, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+		]
+	},
+	{
+		"bg1":         "lvl7_l2.png",
+		"bg2":         "lvl7_l3.png",
+		"color":         [ 240,  21,  21, 255 ],
+		"alt_color":     [   0, 255, 255, 255 ],
+		"beam_color":    [   0, 255, 255, 255 ],
+		"laser_color":   [   0, 255,   0, 255 ],
+		"text_color":    [   0, 255,   0, 255 ],
+		"warning_color": [   0, 255, 255, 255 ],
+		"point_color":   [  50, 255,  50, 255 ],
+		"segments": [
+			"segment_1.png",
+			"segment_2.png",
+			"segment_3.png"
+		],
+		"anims": [
+		]
+	}
+]

@@ -40,10 +40,9 @@ Box2 offsetBox(const Box2& box, const Vector2& offset);
 class Map {
 public:
 	enum BlockType {
-		WALL,
-		UNUSED,
-		POINT,
-		EMPTY,
+		WALL  = 0,
+		POINT = 2,
+		EMPTY = 5,
 
 		PREVIEW_OFFSET = 12,
 	};
@@ -55,6 +54,7 @@ public:
 	unsigned endIndex(int col) const;
 
 	Box2 blockBox(int i) const;
+	int length() const { return _length; }
 
 	Box2 hit(const Box2& box, int bi, float dScroll) const;
 	Box2 pickup(const Box2& box, int bi, float dScroll);
@@ -67,8 +67,13 @@ public:
 	void setBg(unsigned i, const Path& path);
 	void setBgScroll(unsigned i, float scroll);
 
+	void setWarningColor(const Vector4& color);
+	void setPointColor(const Vector4& color);
+
 	void clear();
 	void appendSection(unsigned i);
+	void appendSection(const ImageSP aspect);
+	void appendSection(const Path& path);
 	void generate(unsigned seed, unsigned minLength, float difficulty,
 	              float variance=.3);
 
@@ -98,6 +103,9 @@ private:
 	unsigned        _hTiles;
 	unsigned        _vTiles;
 	TextureAspectSP _warningTex;
+
+	Vector4         _warningColor;
+	Vector4         _pointColor;
 
 	SectionVector   _sections;
 	unsigned        _nRows;
