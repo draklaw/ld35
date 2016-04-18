@@ -40,10 +40,9 @@ Box2 offsetBox(const Box2& box, const Vector2& offset);
 class Map {
 public:
 	enum BlockType {
-		WALL,
-		UNUSED,
-		POINT,
-		EMPTY,
+		WALL  = 0,
+		POINT = 2,
+		EMPTY = 5,
 
 		PREVIEW_OFFSET = 12,
 	};

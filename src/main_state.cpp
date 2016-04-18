@@ -917,7 +917,7 @@ void MainState::updateFrame() {
 	snprintf(buff, BUFSIZE, "%.2f km", _distance/1000);
 	_texts.get(_distanceText)->setText(buff);
 
-	snprintf(buff, BUFSIZE, "%d", _score);
+	snprintf(buff, BUFSIZE, "%.0f", _score*1000.0);
 	_texts.get(_scoreText)->setText(buff);
 
 	// Killin' parts !

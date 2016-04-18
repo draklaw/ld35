@@ -184,7 +184,7 @@ protected:
 	float       _scrollPos;
 	float       _distance;
 	bool        _levelFinished;
-	unsigned    _score;
+	float       _score;
 	Vector4     _levelColor;
 	Vector4     _levelColor2;
 	Vector4     _beamColor;
