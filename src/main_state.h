@@ -196,7 +196,7 @@ protected:
 	AssetWP     _shipSound;
 	int         _shipSoundSample;
 	int64       _lastPointSound;
-	int         _warningTileEndIndex;
+	int         _warningTileX;
 	std::vector<bool> _warningMap;
 
 	std::vector<bool>    _partAlive;

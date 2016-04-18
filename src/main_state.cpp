@@ -69,7 +69,7 @@ MainState::MainState(Game* game)
 
       _map(this),
 
-      _levelCount   (4),
+      _levelCount   (5),
       _currentLevel (-1),
 
       _shipPartCount(6),
@@ -178,6 +178,7 @@ void MainState::initialize() {
 	_levelColors.push_back(Vector4(112, 46, 188, 255) / 255.f);
 	_levelColors.push_back(Vector4(27, 20, 133, 255) / 255.f);
 	_levelColors.push_back(Vector4(100, 215, 238, 255) / 255.f);
+	_levelColors.push_back(Vector4(0, 255, 0, 255) / 255.f);
 	_levelColors.push_back(Vector4(255, 183, 75, 255) / 255.f);
 	lairAssert(_levelColors.size() == _levelCount);
 
@@ -370,7 +371,7 @@ Vector2 MainState::partExpectedPosition(unsigned shape, unsigned part) const {
 
 
 float MainState::warningScrollDist() const {
-	return _shipHSpeed / 100 * _blockSize;
+	return _shipHSpeed / 150 * _blockSize;
 }
 
 
@@ -531,6 +532,10 @@ void MainState::startGame(int level) {
 		_map.setBg(1, "lvl3_l3.png");
 		break;
 	case 3:
+		_map.setBg(0, "lvl4_l2.png");
+		_map.setBg(1, "lvl4_l3.png");
+		break;
+	case 4:
 		_map.setBg(0, "lvl6_l2.png");
 		_map.setBg(1, "lvl6_l3.png");
 		break;
@@ -539,12 +544,13 @@ void MainState::startGame(int level) {
 	_levelColor  = _levelColors[_currentLevel];
 	_levelColor2 = Vector4(0, 1, 1, .5);
 	_beamColor   = _levelColor2;
-	_laserColor  = Vector4(1, 0, 0, .4);
+	_laserColor  = Vector4(0, 1, 0, .7);
 	_textColor   = Vector4(0, 1, 0, 1);
 
 	_shipSoundSample = 0;
 	_lastPointSound  = -ONE_SEC;
-	_warningTileEndIndex = 0;
+	_warningTileX    = 0;
+	_warningMap.assign(21, false);
 
 	_ship = loadEntity("ship.json");
 //	dbgLogger.error(_ship.name());
@@ -603,6 +609,10 @@ void MainState::startGame(int level) {
 //	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 //	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);
 
+	_charSprite.place(Vector3(-550, 0, 0));
+	_dialogBg.place(Vector3(1920 - 96, -450, 0));
+	_dialogText.place(Vector3(0, 0, 0));
+	_prevFrameTime = _loop.tickTime();
 	playAnimation("intro");
 }
 
@@ -627,6 +637,7 @@ void MainState::updateTick() {
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
 	if(_pause) {
+		_entities.updateWorldTransform();
 		return;
 	}
 
@@ -745,17 +756,17 @@ void MainState::updateTick() {
 	shipPosition()[1] += vspeed;
 
 	// Warning sound
-	int warningTileY = (_scrollPos + SCREEN_HEIGHT + warningScrollDist()) / _blockSize;
-	int warningTileEnd = _map.beginIndex(warningTileY);
-	_warningMap.resize(21, false);
+	int warningTileX = (_scrollPos + SCREEN_WIDTH + warningScrollDist()) / _blockSize;
+	int warningTileBegin = _map.beginIndex(std::max(0, _warningTileX-1));
+	int warningTileEnd   = _map.beginIndex(warningTileX);
 	for(int y = 1; y < 21; ++y) {
-		bool hasWall = _map.hasWallAtYInRange(y, _warningTileEndIndex, warningTileEnd);
+		bool hasWall = _map.hasWallAtYInRange(y, warningTileBegin, warningTileEnd);
 		if(hasWall && !_warningMap[y]) {
 			audio()->playSound(_warningSound, 0, CHANN_WARNING);
 		}
 		_warningMap[y] = hasWall;
 	}
-	_warningTileEndIndex = warningTileEnd;
+	_warningTileX = std::max(warningTileX, _warningTileX);
 
 	_prevScrollPos = _scrollPos;
 	_entities.updateWorldTransform();
