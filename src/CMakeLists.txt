@@ -33,6 +33,7 @@ add_executable(${CMAKE_PROJECT_NAME}
 	main.cpp
 	game.cpp
 	map.cpp
+	animation.cpp
 	main_state.cpp
 	splash_state.cpp
 )
