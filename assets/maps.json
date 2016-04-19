@@ -120,9 +120,12 @@
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
-			"segment_1.png",
-			"segment_2.png",
-			"segment_3.png"
+			"segment_empty.png",
+			"segment_4.png",
+			"segment_5.png",
+			"segment_7.png",
+			"segment_12.png",
+			"segment_13.png"
 		],
 		"anims": [
 			[ 0, "lvl_5" ]
@@ -141,9 +144,12 @@
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
-			"segment_1.png",
-			"segment_2.png",
-			"segment_3.png"
+			"segment_empty.png",
+			"segment_9.png",
+			"segment_11.png",
+			"segment_8.png",
+			"segment_15.png",
+			"segment_17.png"
 		],
 		"anims": [
 			[ 0, "lvl_6" ]
@@ -162,9 +168,8 @@
 		"warning_color": [   0, 255, 255, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
-			"segment_1.png",
-			"segment_2.png",
-			"segment_3.png"
+			"segment_empty.png",
+			"segment_t2.png"
 		],
 		"anims": [
 			[ 0, "lvl_7" ]
