@@ -6,7 +6,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [   0, 255,   0, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"min_score":   5500,
@@ -34,7 +34,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [   0, 255,   0, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
@@ -67,7 +67,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [ 255, 255,   0, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [ 255, 255,  50, 255 ],
 		"segments": [
@@ -92,7 +92,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [ 255,   0, 255, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [   0,   0, 255, 255 ],
 		"point_color":   [ 255,  50, 255, 255 ],
 		"segments": [
@@ -116,7 +116,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [   0, 255,   0, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
@@ -140,7 +140,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [   0, 255,   0, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [ 255,   0,   0, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [
@@ -164,7 +164,7 @@
 		"alt_color":     [   0, 255, 255, 255 ],
 		"beam_color":    [   0, 255, 255, 255 ],
 		"laser_color":   [   0, 255,   0, 255 ],
-		"text_color":    [   0,  64,   0, 255 ],
+		"text_color":    [ 255,   0,   0, 255 ],
 		"warning_color": [   0, 255, 255, 255 ],
 		"point_color":   [  50, 255,  50, 255 ],
 		"segments": [

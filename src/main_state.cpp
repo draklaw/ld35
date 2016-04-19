@@ -608,6 +608,7 @@ void MainState::startGame(int level) {
 	_texts.get(_scoreText)->setColor(_textColor);
 	_texts.get(_speedText)->setColor(_textColor);
 	_texts.get(_distanceText)->setColor(_textColor);
+	_texts.get(_dialogText)->setColor(_textColor);
 
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
