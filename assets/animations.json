@@ -17,6 +17,7 @@
 		["hide_char"],
 		["show_char", "hero.png"],
 		["show_text", "..."],
+		["hide_char"],
 		["show_char", "mecano.png"],
 		["show_text", "So, it's set. Do you remember ? Use UP to Climb, DOWN to Dive, RIGHT to Accelerate and LEFT to Brake. Adjust your speed to the difficulty of the map but beware, if you speed down too much (under 2000), you won't earn any points ! The faster you go, the greater the score is."],
 		["hide_char"],

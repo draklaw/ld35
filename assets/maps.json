@@ -24,8 +24,8 @@
 		"anims": [
 			[ 0, "intro" ]
 		],
-		"end_anim":  "intro",
-		"fail_anim": "fail"
+		"end_anim":  "win_lvl1",
+		"fail_anim": "fail_lvl1"
 	},
 	{
 		"bg1":         "lvl2_l2.png",
@@ -55,8 +55,10 @@
 			"segment_14.png"
 		],
 		"anims": [
-			[0, "stretching"]
-		]
+			[ 0, "lvl_2" ]
+		],
+		"end_anim":  "win_lvl2",
+		"fail_anim": "fail_lvl2"
 	},
 	{
 		"bg1":         "lvl3_l2.png",
@@ -78,7 +80,10 @@
 			"segment_17.png"
 		],
 		"anims": [
-		]
+			[ 0, "lvl_3" ]
+		],
+		"end_anim":  "win_lvl3",
+		"fail_anim": "fail_lvl3"
 	},
 	{
 		"bg1":         "lvl4_l2.png",
@@ -99,7 +104,10 @@
 			"segment_15.png"
 		],
 		"anims": [
-		]
+			[ 0, "lvl_4" ]
+		],
+		"end_anim":  "win_lvl4",
+		"fail_anim": "fail_lvl4"
 	},
 	{
 		"bg1":         "lvl5_l2.png",
@@ -117,7 +125,10 @@
 			"segment_3.png"
 		],
 		"anims": [
-		]
+			[ 0, "lvl_5" ]
+		],
+		"end_anim":  "win_lvl5",
+		"fail_anim": "fail_lvl5"
 	},
 	{
 		"bg1":         "lvl6_l2.png",
@@ -135,7 +146,10 @@
 			"segment_3.png"
 		],
 		"anims": [
-		]
+			[ 0, "lvl_6" ]
+		],
+		"end_anim":  "win_lvl6",
+		"fail_anim": "fail_lvl6"
 	},
 	{
 		"bg1":         "lvl7_l2.png",
@@ -153,6 +167,9 @@
 			"segment_3.png"
 		],
 		"anims": [
-		]
+			[ 0, "lvl_7" ]
+		],
+		"end_anim":  "win_lvl7",
+		"fail_anim": "fail_lvl7"
 	}
 ]
