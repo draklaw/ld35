@@ -1,43 +1,43 @@
 {
 	"intro": [
 		["show_char", "mecano.png"],
-		["show_text", "Hey, Jude ! I knew you would come !"],
+		["show_text", "Hey, Jude ! I knew you'd come !"],
 		["hide_char"],
 		["show_char", "hero.png"],
 		["show_text", "You didn't left me any choice... What's the matter ?"],
 		["hide_char"],
 		["show_char", "mecano.png"],
-		["show_text", "Look ! I've just made a new ship ! Look, she's all shiny ! She uses the latest Reno's Uberfaster ! You HAVE to try it !"],
+		["show_text", "Look ! I've just made you a brand new ship ! Look, she's all shiny ! She uses the latest Reno's Uberfaster ! You HAVE to try it !"],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "I decided to never put my hand on a ship again, Maria, you're wasting our time."],
+		["show_text", "I swore to never get in a cockpit ever again, Maria. You're wasting our time."],
 		["hide_char"],
 		["show_char", "mecano.png"],
-		["show_text", "But, please ! With the Cutie Mach, you'll even be able to take your revenge on Regis Veule ! Don't tell me you wanna see this dickhead on the topscreen forever !"],
+		["show_text", "C'mon, please ! Aboard the Cutie Mach, you'll even be able to take your revenge on Regis Veule ! Don't tell me you wanna see this dickhead on the topscreen forever !"],
 		["hide_char"],
 		["show_char", "hero.png"],
 		["show_text", "..."],
 		["hide_char"],
 		["show_char", "mecano.png"],
-		["show_text", "So, it's set. Do you remember ? Use UP to Climb, DOWN to Dive, RIGHT to Accelerate and LEFT to Brake. Adjust your speed to the difficulty of the map but beware, if you speed down too much (under 2000), you won't earn any points ! The faster you go, the greater the score is."],
+		["show_text", "So, it's settled. Do you remember ? Use UP to climb, DOWN to dive, RIGHT to accelerate and LEFT to brake. Adjust your speed to the difficulty of the map but beware, if you keep slowing down below the base 2000m/s, you'll end up earning no points at all ! The faster you go, the greater the rewards."],
 		["hide_char"],
 		["show_char", "hero.png"],
 		["show_text", "I know how to drive a ship and manage a race..."],
 		["hide_char"],
 		["show_char", "mecano.png"],
-		["show_text", "So, prove it to me ! Catch the more tokens with the highest speed to maximise your score !"],
+		["show_text", "So, prove it ! Catch the most tokens at the highest speed to maximize your score !"],
 		["end_dialog"]
 	],
 
 	"fail_lvl1": [
 		["show_char", "mecano.png"],
-		["show_text", "Oh my, you're really rusted ! That's not good enough."],
+		["show_text", "Oh my, you're really rusty ! That's not good enough."],
 		["end_dialog"]
 	],
 
 	"win_lvl1": [
 		["show_char", "hero.png"],
-		["show_text", "Told ya I didn't need you to pilot the Cutie Mach... "],
+		["show_text", "Told ya I didn't need tips on how to pilot your Cutie Mach... "],
 		["end_dialog"]
 	],
 
@@ -46,10 +46,10 @@
 		["show_text", "So, what did ya think about your first dive into the town circuits ? You liked it, don't try to lie to me."],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "... It was fun... I'm not used anymore to the adrenaline rush, I'm far from this stuff, now."],
+		["show_text", "...it was fun... I'm not used to the adrenaline rush anymore, it was just a distant memory."],
 		["hide_char"],
 		["show_char", "mecano.png"],
-		["show_text", "Please, Jude, it's only been three MONTHS ! Don't be overdramatic... Are you ready for the next lesson ?"],
+		["show_text", "Please, Jude, it's only been three MONTHS ! I know it feels like ages ago somehow, but... Anyway, are you ready for the next lesson ?"],
 		["hide_char"],
 		["show_char", "hero.png"],
 		["show_text", "Are you sure I need it ?"],
@@ -76,16 +76,16 @@
 		["show_text", "Jude, you were awesome ! I'm beginning to think you'll be able to take her to the FFGCC ! Let's do more training !"],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "Please, I'm already ready for the tournament..."],
+		["show_text", "Please, I'm already up for that tournament..."],
 		["end_dialog"]
 	],
 
 	"lvl_3": [
 		["show_char", "mecano.png"],
-		["show_text", "I promise it's the last training map before the FFGCC ! The Walls are your second nemesis before Regis. Have the right shape to cross the obstacles. The Cutie Mach have the new collision detection device, you will be warned when a wall comes. The walls can cross the ship if the modules have the right spacing."],
+		["show_text", "I promise it's the last training map before the FFGCC ! The walls are your second nemesis, right after Regis. Take on the right shape to get through the obstacles. The Cutie Mach has a brand new collision detection device, so you'll be warned when a wall comes up. Don't forget that you can let walls slip between your ship and the modules, the whatsit-sparky beams can handle it.."],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "I don't need a stupid device, I'll use my intuition, as always..."],
+		["show_text", "I don't need a stupid device, I'll use my intuition, like I always did..."],
 		["hide_char"],
 		["show_char", "mecano.png"],
 		["show_text", "Don't disrespect the awesomeness of my baby, please. And don't ruin the paintjob !"],
@@ -95,7 +95,7 @@
 
 	"fail_lvl3": [
 		["show_char", "mecano.png"],
-		["show_text", "The booze must have ruin your brain..."],
+		["show_text", "The booze must have ruined your brain..."],
 		["end_dialog"]
 
 	],
@@ -108,58 +108,58 @@
 
 	"lvl_4": [
 		["show_char", "rival.png"],
-		["show_text", "So, you're back ! I don't feel like I can worry for it, you'll quit again at the first problem, that's what you've done the last time..."],
+		["show_text", "So, you're back ! Somehow I'm not too worried, I bet you'll quit again at the first problem, just like you did last time..."],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "Don't take the victory for granted."],
+		["show_text", "Don't take your victory for granted."],
 		["hide_char"],
 		["show_char", "rival.png"],
-		["show_text", "Don't dream, dude. You don't know it yet, but you're already dead."],
+		["show_text", "Dream on, d'jude. You don't know it yet, but you're already dead."],
 		["end_dialog"]
 	],
 
 	"fail_lvl4": [
 		["show_char", "rival.png"],
-		["show_text", "I've never expected something else from a looser like you, but I feel a bit disapointed..."],
+		["show_text", "I never expected better from a looser like you, but I still feel a bit disappointed..."],
 		["end_dialog"]
 
 	],
 
 	"win_lvl4": [
 		["show_char", "rival.png"],
-		["show_text", "Pff ! Lady Luck must have had pity of a looser like you. You won't get so cocky next time."],
+		["show_text", "Pff ! Lady Luck must have taken pity on a looser like you. You won't make it next time."],
 		["end_dialog"]
 	],
 
 	"lvl_5": [
 		["show_char", "mecano.png"],
-		["show_text", "you're doing good ! But focus, and don't let Regis upset you. There is other competitors in the race."],
+		["show_text", "you're doing good ! Just focus, and don't let Regis bug you. There are other competitors in the race."],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "I don't forget it. But he'll know his pain when I'll kick is spandex-thightened ass out of the ring."],
+		["show_text", "I won't forget it. But he'll see how sadly mistaken he was when I'll kick is spandex-thightened ass out of the ring."],
 		["hide_char"],
 		["show_char", "mecano.png"],
-		["show_text", "When did you have time to look that part of him ?"],
+		["show_text", "When did you take the time to look that part of him ?"],
 		["end_dialog"]
 	],
 
 	"fail_lvl5": [
 		["show_char", "mecano.png"],
-		["show_text", "Oh, The Cutie Mach is all wrecked... But you're not hurt, let's see the bright side of the situation ! You'll have your revenge latter..."],
+		["show_text", "Oh, The Cutie Mach is all wrecked... But you're not hurt, so let's see the bright side of the situation ! You'll have your revenge latter..."],
 		["end_dialog"]
 
 	],
 
 	"win_lvl5": [
 		["show_char", "mecano.png"],
-		["show_text", "Jude ! I knew you'll pown the races ! Your odds are still growing !"],
+		["show_text", "Jude ! I knew you'd pwn the races ! Your odds improve with each passing race !"],
 		["end_dialog"]
 	],
 
 
 	"lvl_6": [
 		["show_char", "rival.png"],
-		["show_text", "Maria ? I'm really surprised Jude was able to drive a ship again. After his catastrophic failure (see README.md for more explanations), I thought he would never come back... Will he be ok ?"],
+		["show_text", "Maria ? I'm really surprised Jude was able to drive a ship again. After his catastrophic failure (see README.md for more explanations), I thought he'd never come back... Will he be OK ?"],
 		["hide_char"],
 		["show_char", "mecano.png"],
 		["show_text", "Oh, you care for him ? It's so sweet from you ! But don't worry, Emo-boy, Jude is perfectly able to kick your ass."],
@@ -171,8 +171,8 @@
 
 
 	"fail_lvl6": [
-		["show_char", ".png"],
-		["show_text", ""],
+		["show_char", "hero.png"],
+		["show_text", "Onoes ! I failed and nobody wrote text for that ! I should complain to the developpers."],
 		["end_dialog"]
 
 	],
@@ -185,10 +185,10 @@
 
 	"lvl_7": [
 		["show_char", "rival.png"],
-		["show_text", "How could you win all this ! I'm the best ! I won't let you ruin my career, after leaving me like that ! I've always tried to defeat you, and when we had finally a chance to battle, you left me ! I wanted you to know that I was better than you, I didn't wan't a victory stained by your abandon !"],
+		["show_text", "How could you win all this ! I'm the best ! I won't let you ruin my career, after leaving me like that ! I've always tried to defeat you, and when we finally got a chance to battle, you left me ! I wanted you to know I was better than you, I didn't wan't a victory stained by your abandon !"],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "... (I didn't know he would be so much obsessed with me... Should I worry ?)"],
+		["show_text", "... (I didn't know he would be so obsessed with me... Should I worry ?)"],
 		["hide_char"],
 		["show_char", "rival.png"],
 		["show_text", "I'll never let you take my title ! It's my chance ! You'll have to take me seriously after that !"],
@@ -198,7 +198,7 @@
 
 	"fail_lvl7": [
 		["show_char", "rival.png"],
-		["show_text", "Ah ! I've told you I was the best ! Come again when you want, crybaby, I'll take you the exact same way you like it."],
+		["show_text", "Ah ! I told you I was the best ! Come again when you want, crybaby, I'll take you the exact same way you like it."],
 		["hide_char"],
 		["show_char", "hero.png"],
 		["show_text", "Next time, you'll eat your teeth... "],
@@ -207,16 +207,16 @@
 
 	"win_lvl7": [
 		["show_char", "rival.png"],
-		["show_text", "Y... you defeated me ! I trained restless and..."],
+		["show_text", "Y... you defeated me ! I trained endlessly and..."],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "Regis, stop that. You don't need to win any race to proove me you are a great pilot. I've always know it. But... It's not really what you want me to see, is it ?"],
+		["show_text", "Regis, stop that. You don't need to win any race to prove to me that you're a great pilot. I always knew it. But... It's not really what you want me to see, is it ?"],
 		["hide_char"],
 		["show_char", "rival.png"],
-		["show_text", "I... I don't know what you're speaking about. "],
+		["show_text", "I... I don't know what you're talking about. "],
 		["hide_char"],
 		["show_char", "hero.png"],
-		["show_text", "I should have known before... I'm sorry I've made you suffer like that. Let me redeem my faults. Do you want us to be friends ?"],
+		["show_text", "I should have known before... I'm sorry I made you suffer like that. Let me redeem myself. Do you want us to be friends ?"],
 		["hide_char"],
 		["show_char", "rival.png"],
 		["show_text", "Oh, Jude... You're far more important than any champion title... "],
