@@ -83,6 +83,7 @@ void SplashState::initialize() {
 //	text.place(Vector3(160, 90, .5));
 
 //	loader()->load<SoundLoader>("sound.ogg");
+	loader()->load<MusicLoader>("shapeout.ogg");
 
 	loader()->waitAll();
 
@@ -141,6 +142,7 @@ Game* SplashState::game() {
 
 void SplashState::displaySplash() {
 //	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
+	audio()->playMusic(assets()->getAsset("shapeout.ogg"));
 }
 
 

@@ -49,6 +49,15 @@ Vector4 parseColor(const Json::Value& color) {
 }
 
 
+void dumpEntities(EntityRef entity, int level) {
+	dbgLogger.log(std::string(2*level, ' '), entity.name());
+	EntityRef e = entity.firstChild();
+	while(e.isValid()) {
+		dumpEntities(e, level + 1);
+		e = e.nextSibling();
+	}
+}
+
 MainState::MainState(Game* game)
 	: GameState(game),
 
@@ -315,6 +324,9 @@ void MainState::initialize() {
 	loader()->waitAll();
 	renderer()->uploadPendingTextures();
 
+	Mix_Volume(-1, 64);
+
+
 	_initialized = true;
 }
 
@@ -549,9 +561,9 @@ void MainState::startGame(int level) {
 	_warningTileX    = 0;
 	_warningMap.assign(21, false);
 
-	_ship = loadEntity("ship.json");
+	_ship = loadEntity("ship.json", _gameLayer);
 //	dbgLogger.error(_ship.name());
-	_ship.place(Vector3(4*_blockSize, 5*_blockSize, 0));
+	_ship.place(Vector3(4*_blockSize, 11*_blockSize, 0));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
 	_shipHSpeed = 2*_minShipHSpeed;
