@@ -44,6 +44,7 @@ They keys are mapped as follows:
 * DOWN - Dive
 * X - Stretch
 * W - Shrink
+* SPACE - Skip dialog
 * ESC - Quit
 
 All of this probably doesn't matter, since we've been told the success of a game does not hinge on its gameplay (or story), but rather on its marketing budget, and its mo-capped, explosion-packed unskippable cutscenes. Sadly, we don't have either.
