@@ -24,6 +24,7 @@
 #include <lair/core/json.h>
 
 #include "game.h"
+#include "splash_state.h"
 
 #include "main_state.h"
 
@@ -683,7 +684,15 @@ void MainState::updateTick() {
 	}
 
 	if(alive && _levelFinished) {
-		startGame(_currentLevel + levelSucceded);
+		int next = _currentLevel + levelSucceded;
+		if(next >= _mapInfo.size()) {
+			game()->splashState()->setup(nullptr, "credits.png");
+			game()->setNextState(game()->splashState());
+			quit();
+			return;
+		}
+
+		startGame(next);
 		_entities.updateWorldTransform();
 		return;
 	}

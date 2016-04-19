@@ -48,6 +48,12 @@ void Game::initialize() {
 
 	_splashState->initialize();
 	_mainState->initialize();
+
+	_splashState->setup(_mainState.get(), Path(), 3);
+
+	AssetSP music = _loader->loadAsset<MusicLoader>("shapeout.ogg");
+	_loader->waitAll();
+	audio()->playMusic(music);
 }
 
 

@@ -56,7 +56,7 @@ public:
 
 	Game* game();
 
-	void displaySplash();
+	void setup(GameState* nextState, const Path& splashImage, float skipTime = 1.e20);
 	void updateTick();
 	void updateFrame();
 
@@ -86,7 +86,9 @@ protected:
 
 	Input*      _skipInput;
 
-	EntityRef   _modelRoot;
+	float       _skipTime;
+	GameState*  _nextState;
+	EntityRef   _splash;
 };
 
 

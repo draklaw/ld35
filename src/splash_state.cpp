@@ -50,7 +50,10 @@ SplashState::SplashState(Game* game)
       _fpsTime(0),
       _fpsCount(0),
 
-      _skipInput(nullptr) {
+      _skipInput(nullptr),
+
+      _skipTime(1),
+      _nextState(nullptr) {
 
 	_entities.registerComponentManager(&_sprites);
 	_entities.registerComponentManager(&_texts);
@@ -74,16 +77,14 @@ void SplashState::initialize() {
 	_skipInput = _inputs.addInput("skip");
 	_inputs.mapScanCode(_skipInput, SDL_SCANCODE_ESCAPE);
 
-	_modelRoot = _entities.createEntity(_entities.root(), "modelRoot");
-
-	EntityRef sprite = loadEntity("titlescreen.json", _entities.root());
-	sprite.place(Vector3(0, 0, 0));
+	_splash = loadEntity("titlescreen.json", _entities.root());
+	_splash.place(Vector3(0, 0, 0));
 
 //	EntityRef text = loadEntity("text.json", _entities.root());
 //	text.place(Vector3(160, 90, .5));
 
 //	loader()->load<SoundLoader>("sound.ogg");
-	loader()->load<MusicLoader>("shapeout.ogg");
+//	loader()->load<MusicLoader>("shapeout.ogg");
 
 	loader()->waitAll();
 
@@ -110,12 +111,7 @@ void SplashState::run() {
 	_fpsTime  = sys()->getTimeNs();
 	_fpsCount = 0;
 
-	displaySplash();
-
 	do {
-		if (sys()->getTimeNs() / ONE_SEC > .5)
-			quit();
-		
 		switch(_loop.nextEvent()) {
 		case InterpLoop::Tick:
 			updateTick();
@@ -125,12 +121,13 @@ void SplashState::run() {
 			break;
 		}
 	} while (_running);
+
 	_loop.stop();
 }
 
 
 void SplashState::quit() {
-	game()->setNextState(game()->mainState());
+	game()->setNextState(_nextState);
 	_running = false;
 }
 
@@ -140,17 +137,28 @@ Game* SplashState::game() {
 }
 
 
-void SplashState::displaySplash() {
-//	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
-	audio()->playMusic(assets()->getAsset("shapeout.ogg"));
+void SplashState::setup(GameState* nextState, const Path& splashImage, float skipTime) {
+	_skipTime = skipTime;
+	_nextState = nextState;
+	if(!splashImage.empty()) {
+		_splash.sprite()->setTexture(splashImage);
+		loader()->waitAll();
+	}
 }
 
 
 void SplashState::updateTick() {
 	_inputs.sync();
 
-	//FIXME: ESC input is also caught by the following state, quitting the game.
-	if(_skipInput->justPressed()) {
+	_skipTime -= float(_loop.tickDuration()) / float(ONE_SEC);
+
+	if (_skipTime <= 0
+	|| _skipInput->justPressed()
+	|| sys()->getKeyState(SDL_SCANCODE_SPACE)
+	|| sys()->getKeyState(SDL_SCANCODE_RETURN)) {
+		// ESC quite the game.
+		if(sys()->getKeyState(SDL_SCANCODE_ESCAPE))
+			_nextState = nullptr;
 		quit();
 	}
 
@@ -202,10 +210,6 @@ EntityRef SplashState::loadEntity(const Path& path, EntityRef parent, const Path
 	Path realPath = game()->dataPath() / localPath;
 	if(!parseJson(json, realPath, localPath, log())) {
 		return EntityRef();
-	}
-
-	if(!parent.isValid()) {
-		parent = _modelRoot;
 	}
 
 	return _entities.createEntityFromJson(parent, json, localPath.dir());
