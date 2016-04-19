@@ -90,9 +90,12 @@
 		"warning_color": [   0,   0, 255, 255 ],
 		"point_color":   [ 255,  50, 255, 255 ],
 		"segments": [
-			"segment_1.png",
-			"segment_2.png",
-			"segment_3.png"
+			"segment_empty.png",
+			"segment_5.png",
+			"segment_6.png",
+			"segment_7.png",
+			"segment_8.png",
+			"segment_15.png"
 		],
 		"anims": [
 		]
