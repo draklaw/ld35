@@ -241,12 +241,22 @@ void Map::generate(unsigned seed, unsigned minLength, float difficulty,
 }
 
 
-void Map::render(float scroll, float pDist, float screenWidth) {
+void Map::render(float scroll, float pDist, float screenWidth, float pWidth,
+                 const OrthographicCamera& camera) {
+	RenderPass* renderPass = _state->renderPass();
 	SpriteRenderer* renderer = _state->spriteRenderer();
 
-	_state->renderer()->uploadPendingTextures();
+	RenderPass::DrawStates states;
+	states.shader = renderer->shader().shader;
+	states.buffer = renderer->buffer();
+	states.format = renderer->format();
+	states.textureFlags = Texture::TRILINEAR | Texture::REPEAT;
+	states.blendingMode = BLEND_ALPHA;
 
-	Matrix4 trans = _state->screenTransform();
+	const ShaderParameter* params = renderer->addShaderParameters(
+	            renderer->shader(), camera.transform(), 0);
+
+	Matrix4 trans = Matrix4::Identity();
 	Vector4 color(1, 1, 1, 1);
 
 	// Backgrounds
@@ -255,11 +265,18 @@ void Map::render(float scroll, float pDist, float screenWidth) {
 			continue;
 
 		TextureSP bgTex = _bgTex[i]->_get();
+
+		trans(2, 3) = float(i) / 10.f;
 		float bgScroll = scroll * _bgScroll[i] / bgTex->width();
 		Box2 bgBox(Vector2(0, 0), Vector2(1920, 1080));
 		Box2 bgTexBox(Vector2(bgScroll, 0), Vector2(bgScroll + 1920.f / bgTex->width(), 1));
-		renderer->addSprite(trans, bgBox, color, bgTexBox, bgTex,
-							Texture::TRILINEAR, BLEND_ALPHA);
+
+		unsigned vxIndex = renderer->indexCount();
+		renderer->addSprite(trans, bgBox, color, bgTexBox);
+		unsigned vxCount = renderer->indexCount() - vxIndex;
+
+		states.texture = bgTex;
+		renderPass->addDrawCall(states, params, 1.f - trans(2, 3), vxIndex, vxCount);
 	}
 
 	// Warnings
@@ -278,85 +295,94 @@ void Map::render(float scroll, float pDist, float screenWidth) {
 	}
 	Vector4 wColor = _warningColor;
 	wColor(3) *= .7;
+	trans(2, 3) = 0.25;
+	unsigned vxIndex = renderer->indexCount();
 	for(unsigned i = 1; i < _nRows-1; ++i) {
 		if(warnings[i] > 0) {
 			Box2 pos(Vector2(screenWidth * (1 - warnings[i]), i * _state->blockSize()),
 			         Vector2(screenWidth * (2 - warnings[i]), (i+1) * _state->blockSize()));
 			Box2 texCoord(Vector2(0, 0), Vector2(1, 1));
-			renderer->addSprite(trans, pos, wColor, texCoord, warningTex,
-			                    Texture::TRILINEAR, BLEND_ALPHA);
+			renderer->addSprite(trans, pos, wColor, texCoord);
 		}
 	}
+	unsigned vxCount = renderer->indexCount() - vxIndex;
+
+	states.texture = warningTex;
+	renderPass->addDrawCall(states, params, 1.f - trans(2, 3), vxIndex, vxCount);
 
 	// Tiles
 	TextureSP tilesTex = _tilesTex->_get();
 	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
 
+	trans(2, 3) = 0.3;
+
 	unsigned beginCol = scroll / _state->blockSize();
 	unsigned endCol   = beginCol + 41;
 	unsigned i = beginIndex(beginCol);
+	vxIndex = renderer->indexCount();
 	while(i < _blocks.size() && _blocks[i].pos(0) < endCol) {
 		unsigned ti = _blocks[i].type;
 		Vector2 tilePos(float(ti % _hTiles) / float(_hTiles),
 		                float(ti / _hTiles) / float(_vTiles));
 		Box2 texCoord(tilePos, tilePos + tileSize);
 		Box2 coords = offsetBox(blockBox(i), Vector2(-scroll, 0));
-		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
-		                    Texture::TRILINEAR, BLEND_ALPHA);
+		renderer->addSprite(trans, coords, color, texCoord);
 		++i;
 	}
-}
+	vxCount = renderer->indexCount() - vxIndex;
 
+	states.texture = tilesTex;
+	renderPass->addDrawCall(states, params, 1.f - trans(2, 3), vxIndex, vxCount);
 
-void Map::renderPreview(float scroll, float pDist, float screenWidth, float pWidth) {
-	SpriteRenderer* renderer = _state->spriteRenderer();
+	// Preview
+	{
+		trans(2, 3) = 0.55;
 
-	Matrix4 trans = _state->screenTransform();
-	TextureSP tilesTex = _tilesTex->_get();
-	Vector2 tileSize(1. / _hTiles, 1. / _vTiles);
+		unsigned beginCol = beginIndex(rightScroll / _state->blockSize());
+		unsigned endCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
 
-	float rightScroll = scroll + screenWidth;
-	unsigned beginCol = beginIndex(rightScroll / _state->blockSize());
-	unsigned endCol   = beginIndex((rightScroll + pDist) / _state->blockSize());
-
-	std::vector<unsigned> blocks;
-	for(unsigned row = 1; row < _nRows-1; ++ row) {
-		bool gotPoint = false;
-		for(unsigned i = beginCol; i < endCol; ++i) {
-			const Block& b = _blocks[i];
-			if(b.pos(1) == row) {
-				if(b.type == WALL) {
-					blocks.push_back(i);
-					break;
-				}
-				if(b.type == POINT && !gotPoint) {
-					blocks.push_back(i);
-					gotPoint = true;
+		std::vector<unsigned> blocks;
+		for(unsigned row = 1; row < _nRows-1; ++ row) {
+			bool gotPoint = false;
+			for(unsigned i = beginCol; i < endCol; ++i) {
+				const Block& b = _blocks[i];
+				if(b.pos(1) == row) {
+					if(b.type == WALL) {
+						blocks.push_back(i);
+						break;
+					}
+					if(b.type == POINT && !gotPoint) {
+						blocks.push_back(i);
+						gotPoint = true;
+					}
 				}
 			}
 		}
-	}
 
-	for(unsigned bi = 0; bi < blocks.size(); ++bi) {
-		unsigned i = blocks[bi];
-		unsigned ti = _blocks[i].type + PREVIEW_OFFSET;
-		Vector2 tilePos(float(ti % _hTiles) / float(_hTiles),
-						float(ti / _hTiles) / float(_vTiles));
-		Box2 texCoord(tilePos, tilePos + tileSize);
-		Box2 coords = blockBox(i);
-		float scale = ((ti == PREVIEW_OFFSET)? 2: 1.2) - (coords.max()(0) - scroll - screenWidth) / pDist;
+		vxIndex = renderer->indexCount();
+		for(unsigned bi = 0; bi < blocks.size(); ++bi) {
+			unsigned i = blocks[bi];
+			unsigned ti = _blocks[i].type + PREVIEW_OFFSET;
+			Vector2 tilePos(float(ti % _hTiles) / float(_hTiles),
+							float(ti / _hTiles) / float(_vTiles));
+			Box2 texCoord(tilePos, tilePos + tileSize);
+			Box2 coords = blockBox(i);
+			float scale = ((ti == PREVIEW_OFFSET)? 2: 1.2) - (coords.max()(0) - scroll - screenWidth) / pDist;
 
-		coords.min()(0) = (coords.min()(0) - rightScroll) * pWidth / pDist
-						+ screenWidth - pWidth - _state->blockSize();
-		coords.max()(0) = coords.min()(0) + _state->blockSize();
+			coords.min()(0) = (coords.min()(0) - rightScroll) * pWidth / pDist
+							+ screenWidth - pWidth - _state->blockSize();
+			coords.max()(0) = coords.min()(0) + _state->blockSize();
 
-		Vector2 a(coords.max()(0), (coords.min()(1) + coords.max()(1)) / 2);
-		coords.min() = (coords.min() - a) * scale + a;
-		coords.max() = (coords.max() - a) * scale + a;
+			Vector2 a(coords.max()(0), (coords.min()(1) + coords.max()(1)) / 2);
+			coords.min() = (coords.min() - a) * scale + a;
+			coords.max() = (coords.max() - a) * scale + a;
 
-		Vector4 color = (ti == PREVIEW_OFFSET)? _warningColor: _pointColor;
-		renderer->addSprite(trans, coords, color, texCoord, tilesTex,
-							Texture::TRILINEAR, BLEND_ALPHA);
+			Vector4 color = (ti == PREVIEW_OFFSET)? _warningColor: _pointColor;
+			renderer->addSprite(trans, coords, color, texCoord);
+		}
+		vxCount = renderer->indexCount() - vxIndex;
+
+		renderPass->addDrawCall(states, params, 1.f - trans(2, 3), vxIndex, vxCount);
 	}
 }
 

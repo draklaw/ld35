@@ -51,14 +51,14 @@ typedef std::shared_ptr<Animation> AnimationSP;
 class MoveAnim : public Animation {
 public:
 	MoveAnim(float length, EntityRef entity,
-	         const Vector2& from, const Vector2& to);
+	         const Vector3& from, const Vector3& to);
 
 	virtual void update(float time);
 
 public:
 	EntityRef entity;
-	Vector2   from;
-	Vector2   to;
+	Vector3   from;
+	Vector3   to;
 };
 typedef std::shared_ptr<MoveAnim> MoveAnimSP;
 

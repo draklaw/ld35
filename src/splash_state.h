@@ -30,6 +30,7 @@
 #include <lair/utils/input.h>
 
 #include <lair/render_gl2/orthographic_camera.h>
+#include <lair/render_gl2/render_pass.h>
 
 #include <lair/ec/entity.h>
 #include <lair/ec/entity_manager.h>
@@ -69,6 +70,7 @@ protected:
 	// More or less system stuff
 
 	EntityManager              _entities;
+	RenderPass                 _renderPass;
 	SpriteRenderer             _spriteRenderer;
 	SpriteComponentManager     _sprites;
 	BitmapTextComponentManager _texts;

@@ -51,7 +51,7 @@ Vector4 parseColor(const Json::Value& color) {
 
 
 void dumpEntities(EntityRef entity, int level) {
-	dbgLogger.log(std::string(2*level, ' '), entity.name());
+	dbgLogger.log(std::string(2*level, ' '), entity.name(), ", ", entity.worldTransform()(2, 3));
 	EntityRef e = entity.firstChild();
 	while(e.isValid()) {
 		dumpEntities(e, level + 1);
@@ -63,9 +63,10 @@ MainState::MainState(Game* game)
 	: GameState(game),
 
       _entities(log()),
+      _renderPass(renderer()),
       _spriteRenderer(renderer()),
-      _sprites(assets(), loader(), &_spriteRenderer),
-      _texts(loader(), &_spriteRenderer),
+      _sprites(assets(), loader(), &_renderPass, &_spriteRenderer),
+      _texts(loader(), &_renderPass, &_spriteRenderer),
 
       _inputs(sys(), &log()),
 
@@ -277,17 +278,17 @@ void MainState::initialize() {
 	_charSprite.sprite()->setTexture("rival.png");
 	_charSprite.sprite()->setAnchor(Vector2(0, 0));
 	_charSprite.sprite()->setBlendingMode(BLEND_ALPHA);
-	_charSprite.place(Vector3(-550, 0, 0));
+	_charSprite.place(Vector3(-550, 0, 0.6));
 
 	_dialogBg = _entities.createEntity(_hudLayer, "dialog_bg");
 	_sprites.addComponent(_dialogBg);
 	_dialogBg.sprite()->setTexture("dialog.png");
 	_dialogBg.sprite()->setAnchor(Vector2(1, 0));
 	_dialogBg.sprite()->setBlendingMode(BLEND_ALPHA);
-	_dialogBg.place(Vector3(1920 - 96, -450, 0));
+	_dialogBg.place(Vector3(1920 - 96, -450, 0.7));
 
 	_dialogText = loadEntity("text.json", _hudLayer);
-	_dialogText.place(Vector3(0, 0, 0));
+	_dialogText.place(Vector3(0, 0, 0.8));
 	_texts.get(_dialogText)->setSize(Vector2i(1230, 315));
 	_texts.get(_dialogText)->setAnchor(Vector2(0, 1));
 
@@ -296,27 +297,27 @@ void MainState::initialize() {
 	hudTop.sprite()->setTexture("hud_top.png");
 	hudTop.sprite()->setAnchor(Vector2(0, 1));
 	hudTop.sprite()->setBlendingMode(BLEND_ALPHA);
-	hudTop.place(Vector3(0, 1080, 0));
+	hudTop.place(Vector3(0, 1080, 0.9));
 
 	EntityRef hudBottom = _entities.createEntity(_hudLayer, "hud_bottom");
 	_sprites.addComponent(hudBottom);
 	hudBottom.sprite()->setTexture("hud_bottom.png");
 	hudBottom.sprite()->setAnchor(Vector2(0, 0));
 	hudBottom.sprite()->setBlendingMode(BLEND_ALPHA);
-	hudBottom.place(Vector3(0, 0, 0));
+	hudBottom.place(Vector3(0, 0, 0.9));
 
 	// ad-hoc value to compensate the fact that the baseline is wrong...
 	float tvOff = 8;
-	_scoreText = loadEntity("text.json", _gameLayer);
-	_scoreText.place(Vector3(1120, 1070 - tvOff, 0));
+	_scoreText = loadEntity("text.json", _hudLayer);
+	_scoreText.place(Vector3(1120, 1070 - tvOff, 1));
 	_texts.get(_scoreText)->setAnchor(Vector2(1, 1));
 
-	_speedText = _scoreText.clone(_gameLayer);
-	_speedText.place(Vector3(230, 1070 - tvOff, 0));
+	_speedText = _scoreText.clone(_hudLayer, "speedText");
+	_speedText.place(Vector3(230, 1070 - tvOff, 1));
 	_texts.get(_speedText)->setAnchor(Vector2(1, 1));
 
-	_distanceText = _scoreText.clone(_gameLayer);
-	_distanceText.place(Vector3(230, -tvOff, 0));
+	_distanceText = _scoreText.clone(_hudLayer, "distanceText");
+	_distanceText.place(Vector3(230, -tvOff, 1));
 	_texts.get(_distanceText)->setAnchor(Vector2(1, 0));
 
 	_shipSound = loader()->loadAsset<SoundLoader>("engine0.wav");
@@ -354,6 +355,7 @@ void MainState::run() {
 		switch(_loop.nextEvent()) {
 		case InterpLoop::Tick:
 			updateTick();
+			_entities.updateWorldTransform();
 			break;
 		case InterpLoop::Frame:
 			updateFrame();
@@ -447,8 +449,8 @@ void MainState::nextAnimationStep() {
 				_charSprite.sprite()->setTexture(step[1].asString());
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _charSprite,
-				               _charSprite.transform().translation().head<2>(),
-				               Vector2(0, 0)));
+				               _charSprite.transform().translation().head<3>(),
+				               Vector3(0, 0, _charSprite.transform()(2, 3))));
 				a->addAnim(std::make_shared<ColorAnim>(
 				               animLen, _charSprite,
 				               _charSprite.sprite()->color(),
@@ -456,16 +458,16 @@ void MainState::nextAnimationStep() {
 				_dialogBg.sprite()->setAnchor(Vector2(1, 0));
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _dialogBg,
-				               _dialogBg.transform().translation().head<2>(),
-				               Vector2(leftDialogPos, dialogY)));
+				               _dialogBg.transform().translation().head<3>(),
+				               Vector3(leftDialogPos, dialogY, _dialogBg.transform()(2, 3))));
 				_anim = a;
 			}
 			if(cmd == "hide_char") {
 				auto a = std::make_shared<CompoundAnim>();
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _charSprite,
-				               _charSprite.transform().translation().head<2>(),
-				               Vector2(-550, 0)));
+				               _charSprite.transform().translation().head<3>(),
+				               Vector3(-550, 0, _charSprite.transform()(2, 3))));
 				a->addAnim(std::make_shared<ColorAnim>(
 				               animLen, _charSprite,
 				               _charSprite.sprite()->color(),
@@ -476,8 +478,8 @@ void MainState::nextAnimationStep() {
 				auto a = std::make_shared<CompoundAnim>();
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _charSprite,
-				               _charSprite.transform().translation().head<2>(),
-				               Vector2(-550, 0)));
+				               _charSprite.transform().translation().head<3>(),
+				               Vector3(-550, 0, _charSprite.transform()(2, 3))));
 				a->addAnim(std::make_shared<ColorAnim>(
 				               animLen, _charSprite,
 				               _charSprite.sprite()->color(),
@@ -485,14 +487,14 @@ void MainState::nextAnimationStep() {
 				_dialogBg.sprite()->setAnchor(Vector2(1, 0));
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _dialogBg,
-				               _dialogBg.transform().translation().head<2>(),
-				               Vector2(leftDialogPos, -450)));
+				               _dialogBg.transform().translation().head<3>(),
+				               Vector3(leftDialogPos, -450, _dialogBg.transform()(2, 3))));
 				_texts.get(_dialogText)->setText("");
 				_anim = a;
 			}
 			if(cmd == "show_text") {
 				auto a = std::make_shared<CompoundAnim>();
-				_dialogText.place(Vector3(550, 475, 0));
+				_dialogText.place(Vector3(550, 475, _dialogText.transform()(2, 3)));
 				_texts.get(_dialogText)->setText(step[1].asString());
 				_animState = ANIM_WAIT;
 			}
@@ -525,8 +527,9 @@ void MainState::endAnimation() {
 
 
 void MainState::startGame(int level) {
-	if(_ship.isValid())
+	if(_ship.isValid()) {
 		_entities.destroyEntity(_ship);
+	}
 
 	_currentLevel = level % _mapInfo.size();
 
@@ -564,7 +567,7 @@ void MainState::startGame(int level) {
 
 	_ship = loadEntity("ship.json", _gameLayer);
 //	dbgLogger.error(_ship.name());
-	_ship.place(Vector3(4*_blockSize, 11*_blockSize, 0));
+	_ship.place(Vector3(4*_blockSize, 11*_blockSize, 0.4));
 	_ship.sprite()->setColor(_levelColor2);
 	_ship.sprite()->setTileIndex(4);
 	_shipHSpeed = 2*_minShipHSpeed;
@@ -574,31 +577,30 @@ void MainState::startGame(int level) {
 
 //	EntityRef ship2 = _ship.firstChild();
 //	while(ship2.nextSibling().isValid()) ship2 = ship2.nextSibling();
-	EntityRef ship2 = _ship.clone(_ship);
+	EntityRef ship2 = _ship.clone(_ship, "ship_2");
 //	dbgLogger.error(ship2.name());
 	ship2.sprite()->setColor(_levelColor);
 	ship2.sprite()->setTileIndex(1);
-	ship2.place(Vector3(0, 0, 0));
+	ship2.place(Vector3(0, 0, .1));
 
 	_shipShape = 0;
 	_shipParts.resize(_shipPartCount);
 	_partAlive.resize(_shipPartCount);
 	for (int i = 0 ; i < _shipPartCount ; ++i)
 	{
-		_shipParts[i] = _ship.clone(_ship, "shipPart");
+		_shipParts[i] = _ship.clone(_ship, ("shipPart_" + std::to_string(i)).c_str());
 //		dbgLogger.error(_shipParts[i].name());
 		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
 		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 9: 12));
 		_shipParts[i].sprite()->setColor(_levelColor2);
 		Vector2 pos = partExpectedPosition(_shipShape, i);
-		_shipParts[i].place(Vector3(pos[0],pos[1],0));
+		_shipParts[i].place(Vector3(pos[0], pos[1], 0));
 
 //		EntityRef part2 = _shipParts[i].firstChild();
-		EntityRef part2 = _shipParts[i].clone(_shipParts[i]);
-//		dbgLogger.error(part2.name());
+		EntityRef part2 = _shipParts[i].clone(_shipParts[i], (_shipParts[i].name() + std::string("_2")).c_str());
 		part2.sprite()->setColor(_levelColor);
 		part2.sprite()->setTileIndex(i + ((i<3)? 0: 3));
-		part2.place(Vector3(0, 0, 0));
+		part2.place(Vector3(0, 0, 0.1));
 
 		_partAlive[i] = true;
 	}
@@ -628,9 +630,9 @@ void MainState::startGame(int level) {
 //	audio()->playSound(assets()->getAsset("sound.ogg"), 2);
 //	Mix_RegisterEffect(MIX_CHANNEL_POST, shipSoundCb, NULL, this);
 
-	_charSprite.place(Vector3(-550, 0, 0));
-	_dialogBg.place(Vector3(SCREEN_WIDTH - 96, -450, 0));
-	_dialogText.place(Vector3(0, 0, 0));
+	_charSprite.place(Vector3(-550, 0, 0.6));
+	_dialogBg.place(Vector3(SCREEN_WIDTH - 96, -450, 0.7));
+	_dialogText.place(Vector3(0, 0, 0.8));
 	_prevFrameTime = _loop.tickTime();
 
 	_entities.updateWorldTransform();
@@ -679,7 +681,6 @@ void MainState::updateTick() {
 	double tickDur = double(_loop.tickDuration()) / double(ONE_SEC);
 
 	if(_pause) {
-		_entities.updateWorldTransform();
 		return;
 	}
 
@@ -693,13 +694,11 @@ void MainState::updateTick() {
 		}
 
 		startGame(next);
-		_entities.updateWorldTransform();
 		return;
 	}
 
 	if(_deathTimer > int64(ONE_SEC)) {
 		startGame(_currentLevel);
-		_entities.updateWorldTransform();
 		return;
 	}
 
@@ -836,7 +835,6 @@ void MainState::updateTick() {
 	_warningTileX = std::max(warningTileX, _warningTileX);
 
 	_prevScrollPos = _scrollPos;
-	_entities.updateWorldTransform();
 }
 
 
@@ -951,24 +949,26 @@ void MainState::updateFrame() {
 
 	updateAnimation(etime);
 
+	renderer()->uploadPendingTextures();
+
 	// Rendering
 	Context* glc = renderer()->context();
 
 	glc->clearColor(_levelColor(0), _levelColor(1), _levelColor(2), _levelColor(3));
 	glc->clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-	_spriteRenderer.beginFrame();
+	_renderPass.clear();
+	_spriteRenderer.clear();
 
 	float scroll = lerp(_loop.frameInterp(), _prevScrollPos, _scrollPos);
 	float screenWidth = float(window()->width() * SCREEN_HEIGHT)
 	                  / window()->height();
-	_map.render(scroll, warningScrollDist(), screenWidth);
-	renderBeams(_loop.frameInterp());
+	_map.render(scroll, warningScrollDist(), screenWidth, 70, _camera);
+	renderBeams(_loop.frameInterp(), _camera);
 	_sprites.render(_loop.frameInterp(), _camera);
-	_map.renderPreview(scroll, warningScrollDist(), screenWidth, 70);
-	_texts.render(_loop.frameInterp());
+	_texts.render(_loop.frameInterp(), _camera);
 
-	_spriteRenderer.endFrame(_camera.transform());
+	_renderPass.render();
 
 	window()->swapBuffers();
 	glc->setLogCalls(false);
@@ -998,13 +998,20 @@ void MainState::renderBeam(const Matrix4& trans, TextureSP tex, const Vector2& p
 	              Vector2(dist / tex->width() + texOffset,
 	                      float(row + 1) / float(rowCount)));
 
-//	_spriteRenderer.setDrawCall(tex, Texture::TRILINEAR, BLEND_ALPHA);
-
 	unsigned index = _spriteRenderer.vertexCount();
-	_spriteRenderer.addVertex(trans, p0 - n, color, texCoord.corner(Box2::TopLeft));
-	_spriteRenderer.addVertex(trans, p1 - n, color, texCoord.corner(Box2::TopRight));
-	_spriteRenderer.addVertex(trans, p0 + n, color, texCoord.corner(Box2::BottomLeft));
-	_spriteRenderer.addVertex(trans, p1 + n, color, texCoord.corner(Box2::BottomRight));
+	Vector4 p;
+	p << p0 - n, 0, 1;
+	p = trans * p;
+	_spriteRenderer.addVertex(p, color, texCoord.corner(Box2::TopLeft));
+	p << p1 - n, 0, 1;
+	p = trans * p;
+	_spriteRenderer.addVertex(p, color, texCoord.corner(Box2::TopRight));
+	p << p0 + n, 0, 1;
+	p = trans * p;
+	_spriteRenderer.addVertex(p, color, texCoord.corner(Box2::BottomLeft));
+	p << p1 + n, 0, 1;
+	p = trans * p;
+	_spriteRenderer.addVertex(p, color, texCoord.corner(Box2::BottomRight));
 
 	_spriteRenderer.addIndex(index + 0);
 	_spriteRenderer.addIndex(index + 1);
@@ -1012,23 +1019,33 @@ void MainState::renderBeam(const Matrix4& trans, TextureSP tex, const Vector2& p
 	_spriteRenderer.addIndex(index + 2);
 	_spriteRenderer.addIndex(index + 1);
 	_spriteRenderer.addIndex(index + 3);
-
-	_spriteRenderer.endSprite();
 }
 
 
-void MainState::renderBeams(float interp) {
+void MainState::renderBeams(float interp, const OrthographicCamera& camera) {
+	RenderPass::DrawStates states;
+	states.shader = _spriteRenderer.shader().shader;
+	states.buffer = _spriteRenderer.buffer();
+	states.format = _spriteRenderer.format();
+	states.textureFlags = Texture::TRILINEAR | Texture::REPEAT;
+	states.blendingMode = BLEND_ALPHA;
+
+	const ShaderParameter* params = _spriteRenderer.addShaderParameters(
+	            _spriteRenderer.shader(), camera.transform(), 0);
+
 	TextureAspectSP texAspect = _beamsTex->aspect<TextureAspect>();
 	TextureSP tex = texAspect->get();
+	states.texture = tex;
 
-	_spriteRenderer.setDrawCall(tex, Texture::TRILINEAR, BLEND_ALPHA);
 	Matrix4 wt = lerp(interp,
 	                  _ship._get()->prevWorldTransform.matrix(),
 	                  _ship._get()->worldTransform.matrix());
+	wt(2, 3) = .35;
 	Vector4 mid4(_blockSize/2.f, _blockSize/2.f, 0, 1);
 	Vector2 mid = mid4.head<2>();
 	Vector2 laserOffset(SCREEN_WIDTH, 0);
 
+	unsigned vxIndex = _spriteRenderer.indexCount();
 	renderBeam(wt, tex, mid, mid + laserOffset, _laserColor, 0, 0, 2);
 	Vector2 shipPos[3];
 	for(int i = 0; i < 3; ++i) {
@@ -1040,7 +1057,20 @@ void MainState::renderBeams(float interp) {
 		Matrix4 wt = lerp(interp,
 		                  _shipParts[i]._get()->prevWorldTransform.matrix(),
 		                  _shipParts[i]._get()->worldTransform.matrix());
+		wt(2, 3) = .35;
 		renderBeam(wt, tex, mid, mid + laserOffset, _laserColor, 0, 0, 2);
+	}
+	unsigned vxCount = _spriteRenderer.indexCount() - vxIndex;
+	_renderPass.addDrawCall(states, params, 1.f - wt(2, 3), vxIndex, vxCount);
+
+	vxIndex = _spriteRenderer.indexCount();
+	for(int i = 0; i < _shipPartCount; ++i) {
+		if (!_partAlive[i]) { continue; }
+
+		Matrix4 wt = lerp(interp,
+		                  _shipParts[i]._get()->prevWorldTransform.matrix(),
+		                  _shipParts[i]._get()->worldTransform.matrix());
+		wt(2, 3) = .35;
 
 		Vector4 pp(.25 * _blockSize, ((i < 3)? .25: .75) * _blockSize, 0, 1);
 		Vector2 partPos = (wt * pp).head<2>();
@@ -1048,6 +1078,8 @@ void MainState::renderBeams(float interp) {
 		renderBeam(Matrix4::Identity(), tex, shipPos[i%3], partPos, _beamColor,
 		           advance, 1, 2);
 	}
+	vxCount = _spriteRenderer.indexCount() - vxIndex;
+	_renderPass.addDrawCall(states, params, 1.f - wt(2, 3), vxIndex, vxCount);
 }
 
 

@@ -31,6 +31,7 @@
 #include <lair/utils/input.h>
 
 #include <lair/render_gl2/orthographic_camera.h>
+#include <lair/render_gl2/render_pass.h>
 
 #include <lair/ec/entity.h>
 #include <lair/ec/entity_manager.h>
@@ -83,7 +84,7 @@ public:
 	void renderBeam(const Matrix4& trans, TextureSP tex, const Vector2& p0,
 	                const Vector2& p1, const Vector4& color,
 	                float texOffset, unsigned row, unsigned rowCount);
-	void renderBeams(float interp);
+	void renderBeams(float interp, const OrthographicCamera& camera);
 
 	void resizeEvent();
 
@@ -91,8 +92,8 @@ public:
 	                     const Path& cd = Path());
 
 	float blockSize() const { return _blockSize; }
-	const Matrix4& screenTransform() const { return _gameLayer.transform().matrix(); }
 
+	RenderPass* renderPass() { return &_renderPass; }
 	SpriteRenderer* spriteRenderer() { return &_spriteRenderer; }
 
 	// Callback to play ship soudn
@@ -102,6 +103,7 @@ protected:
 	// More or less system stuff
 
 	EntityManager              _entities;
+	RenderPass                 _renderPass;
 	SpriteRenderer             _spriteRenderer;
 	SpriteComponentManager     _sprites;
 	BitmapTextComponentManager _texts;

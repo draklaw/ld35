@@ -26,6 +26,7 @@
 #include <lair/core/lair.h>
 #include <lair/core/log.h>
 
+#include <lair/render_gl2/orthographic_camera.h>
 #include <lair/render_gl2/texture.h>
 
 
@@ -78,8 +79,8 @@ public:
 	              float variance=.3);
 
 	void updateComming(float scroll, float pDist, float screenWidth);
-	void render(float scroll, float pDist, float screenWidth);
-	void renderPreview(float scroll, float pDist, float screenWidth, float pWidth);
+	void render(float scroll, float pDist, float screenWidth, float pWidth,
+	            const OrthographicCamera& camera);
 
 private:
 	struct Block {

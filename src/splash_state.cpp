@@ -36,9 +36,10 @@ SplashState::SplashState(Game* game)
 	: GameState(game),
 
       _entities(log()),
+      _renderPass(renderer()),
       _spriteRenderer(renderer()),
-      _sprites(assets(), loader(), &_spriteRenderer),
-      _texts(loader(), &_spriteRenderer),
+      _sprites(assets(), loader(), &_renderPass, &_spriteRenderer),
+      _texts(loader(), &_renderPass, &_spriteRenderer),
 
       _inputs(sys(), &log()),
 
@@ -172,12 +173,13 @@ void SplashState::updateFrame() {
 
 	glc->clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-	_spriteRenderer.beginFrame();
+	_renderPass.clear();
+	_spriteRenderer.clear();
 
 	_sprites.render(_loop.frameInterp(), _camera);
-	_texts.render(_loop.frameInterp());
+	_texts.render(_loop.frameInterp(), _camera);
 
-	_spriteRenderer.endFrame(_camera.transform());
+	_renderPass.render();
 
 	window()->swapBuffers();
 	glc->setLogCalls(false);

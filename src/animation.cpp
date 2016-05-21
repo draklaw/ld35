@@ -31,7 +31,7 @@ Animation::~Animation() {
 
 
 MoveAnim::MoveAnim(float length, EntityRef entity,
-         const Vector2& from, const Vector2& to)
+         const Vector3& from, const Vector3& to)
 	: Animation(length),
 	  entity(entity),
 	  from(from),
@@ -40,9 +40,7 @@ MoveAnim::MoveAnim(float length, EntityRef entity,
 
 void MoveAnim::update(float time) {
 	time = std::min(time, length);
-	Vector3 p;
-	p << lerp(time / length, from, to), 0;
-	entity.place(p);
+	entity.place(lerp(time / length, from, to));
 }
 
 
