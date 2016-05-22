@@ -168,6 +168,8 @@ void SplashState::updateTick() {
 
 
 void SplashState::updateFrame() {
+	renderer()->uploadPendingTextures();
+
 	// Rendering
 	Context* glc = renderer()->context();
 
