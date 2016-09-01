@@ -44,9 +44,10 @@ void MoveAnim::update(float time) {
 }
 
 
-ColorAnim::ColorAnim(float length, EntityRef entity,
+ColorAnim::ColorAnim(SpriteComponentManager* sprites, float length, EntityRef entity,
           const Vector4& fromColor, const Vector4& toColor)
 	: Animation(length),
+      sprites(sprites),
 	  entity(entity),
 	  fromColor(fromColor),
 	  toColor(toColor) {
@@ -54,8 +55,9 @@ ColorAnim::ColorAnim(float length, EntityRef entity,
 
 void ColorAnim::update(float time) {
 	time = std::min(time, length);
-	if(entity.sprite()) {
-		entity.sprite()->setColor(lerp(time / length, fromColor, toColor));
+	SpriteComponent* comp = sprites->get(entity);
+	if(comp) {
+		comp->setColor(lerp(time / length, fromColor, toColor));
 	}
 }
 

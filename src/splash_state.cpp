@@ -142,7 +142,7 @@ void SplashState::setup(GameState* nextState, const Path& splashImage, float ski
 	_skipTime = skipTime;
 	_nextState = nextState;
 	if(!splashImage.empty()) {
-		_splash.sprite()->setTexture(splashImage);
+		_sprites.get(_splash)->setTexture(splashImage);
 		loader()->waitAll();
 	}
 }
@@ -150,6 +150,7 @@ void SplashState::setup(GameState* nextState, const Path& splashImage, float ski
 
 void SplashState::updateTick() {
 	_inputs.sync();
+	_entities.setPrevWorldTransforms();
 
 	_skipTime -= float(_loop.tickDuration()) / float(ONE_SEC);
 
@@ -163,7 +164,7 @@ void SplashState::updateTick() {
 		quit();
 	}
 
-	_entities.updateWorldTransform();
+	_entities.updateWorldTransforms();
 }
 
 
@@ -178,8 +179,8 @@ void SplashState::updateFrame() {
 	_renderPass.clear();
 	_spriteRenderer.clear();
 
-	_sprites.render(_loop.frameInterp(), _camera);
-	_texts.render(_loop.frameInterp(), _camera);
+	_sprites.render(_entities.root(), _loop.frameInterp(), _camera);
+	_texts.render(_entities.root(), _loop.frameInterp(), _camera);
 
 	_renderPass.render();
 
@@ -216,5 +217,7 @@ EntityRef SplashState::loadEntity(const Path& path, EntityRef parent, const Path
 		return EntityRef();
 	}
 
-	return _entities.createEntityFromJson(parent, json, localPath.dir());
+	EntityRef entity = _entities.createEntity(parent, localPath.utf8CStr());
+	_entities.initializeFromJson(entity, json, localPath.dir());
+	return entity;
 }

@@ -65,12 +65,13 @@ typedef std::shared_ptr<MoveAnim> MoveAnimSP;
 
 class ColorAnim : public Animation {
 public:
-	ColorAnim(float length, EntityRef entity,
+	ColorAnim(SpriteComponentManager* sprites, float length, EntityRef entity,
 	          const Vector4& fromColor, const Vector4& toColor);
 
 	virtual void update(float time);
 
 public:
+	SpriteComponentManager* sprites;
 	EntityRef entity;
 	Vector4   fromColor;
 	Vector4   toColor;

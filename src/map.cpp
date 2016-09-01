@@ -253,8 +253,10 @@ void Map::render(float scroll, float pDist, float screenWidth, float pWidth,
 	states.textureFlags = Texture::TRILINEAR | Texture::REPEAT;
 	states.blendingMode = BLEND_ALPHA;
 
+	Vector4i tileInfo;
+	tileInfo << 1, 1, 1920, 1080;
 	const ShaderParameter* params = renderer->addShaderParameters(
-	            renderer->shader(), camera.transform(), 0);
+	            renderer->shader(), camera.transform(), 0, tileInfo);
 
 	Matrix4 trans = Matrix4::Identity();
 	Vector4 color(1, 1, 1, 1);
@@ -307,6 +309,10 @@ void Map::render(float scroll, float pDist, float screenWidth, float pWidth,
 	}
 	unsigned vxCount = renderer->indexCount() - vxIndex;
 
+	tileInfo << 1, 1, warningTex->width(), warningTex->height();
+	params = renderer->addShaderParameters(
+	            renderer->shader(), camera.transform(), 0, tileInfo);
+
 	states.texture = warningTex;
 	renderPass->addDrawCall(states, params, 1.f - trans(2, 3), vxIndex, vxCount);
 
@@ -330,6 +336,10 @@ void Map::render(float scroll, float pDist, float screenWidth, float pWidth,
 		++i;
 	}
 	vxCount = renderer->indexCount() - vxIndex;
+
+	tileInfo << _hTiles, _vTiles, tilesTex->width(), tilesTex->height();
+	params = renderer->addShaderParameters(
+	            renderer->shader(), camera.transform(), 0, tileInfo);
 
 	states.texture = tilesTex;
 	renderPass->addDrawCall(states, params, 1.f - trans(2, 3), vxIndex, vxCount);

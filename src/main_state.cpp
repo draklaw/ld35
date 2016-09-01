@@ -272,19 +272,19 @@ void MainState::initialize() {
 //	}
 
 	_charSprite = _entities.createEntity(_hudLayer, "char");
-	_sprites.addComponent(_charSprite);
-	_charSprite.sprite()->setTexture("hero.png"); // Dirty way to preload everything
-	_charSprite.sprite()->setTexture("mecano.png");
-	_charSprite.sprite()->setTexture("rival.png");
-	_charSprite.sprite()->setAnchor(Vector2(0, 0));
-	_charSprite.sprite()->setBlendingMode(BLEND_ALPHA);
+	SpriteComponent* charSC = _sprites.addComponent(_charSprite);
+	charSC->setTexture("hero.png"); // Dirty way to preload everything
+	charSC->setTexture("mecano.png");
+	charSC->setTexture("rival.png");
+	charSC->setAnchor(Vector2(0, 0));
+	charSC->setBlendingMode(BLEND_ALPHA);
 	_charSprite.place(Vector3(-550, 0, 0.6));
 
 	_dialogBg = _entities.createEntity(_hudLayer, "dialog_bg");
-	_sprites.addComponent(_dialogBg);
-	_dialogBg.sprite()->setTexture("dialog.png");
-	_dialogBg.sprite()->setAnchor(Vector2(1, 0));
-	_dialogBg.sprite()->setBlendingMode(BLEND_ALPHA);
+	SpriteComponent* dialogBgSC = _sprites.addComponent(_dialogBg);
+	dialogBgSC->setTexture("dialog.png");
+	dialogBgSC->setAnchor(Vector2(1, 0));
+	dialogBgSC->setBlendingMode(BLEND_ALPHA);
 	_dialogBg.place(Vector3(1920 - 96, -450, 0.7));
 
 	_dialogText = loadEntity("text.json", _hudLayer);
@@ -293,17 +293,17 @@ void MainState::initialize() {
 	_texts.get(_dialogText)->setAnchor(Vector2(0, 1));
 
 	EntityRef hudTop = _entities.createEntity(_hudLayer, "hud_top");
-	_sprites.addComponent(hudTop);
-	hudTop.sprite()->setTexture("hud_top.png");
-	hudTop.sprite()->setAnchor(Vector2(0, 1));
-	hudTop.sprite()->setBlendingMode(BLEND_ALPHA);
+	SpriteComponent* hudTopSC = _sprites.addComponent(hudTop);
+	hudTopSC->setTexture("hud_top.png");
+	hudTopSC->setAnchor(Vector2(0, 1));
+	hudTopSC->setBlendingMode(BLEND_ALPHA);
 	hudTop.place(Vector3(0, 1080, 0.9));
 
 	EntityRef hudBottom = _entities.createEntity(_hudLayer, "hud_bottom");
-	_sprites.addComponent(hudBottom);
-	hudBottom.sprite()->setTexture("hud_bottom.png");
-	hudBottom.sprite()->setAnchor(Vector2(0, 0));
-	hudBottom.sprite()->setBlendingMode(BLEND_ALPHA);
+	SpriteComponent* hudBottomSC = _sprites.addComponent(hudBottom);
+	hudBottomSC->setTexture("hud_bottom.png");
+	hudBottomSC->setAnchor(Vector2(0, 0));
+	hudBottomSC->setBlendingMode(BLEND_ALPHA);
 	hudBottom.place(Vector3(0, 0, 0.9));
 
 	// ad-hoc value to compensate the fact that the baseline is wrong...
@@ -355,7 +355,7 @@ void MainState::run() {
 		switch(_loop.nextEvent()) {
 		case InterpLoop::Tick:
 			updateTick();
-			_entities.updateWorldTransform();
+			_entities.updateWorldTransforms();
 			break;
 		case InterpLoop::Frame:
 			updateFrame();
@@ -443,19 +443,21 @@ void MainState::nextAnimationStep() {
 			_animPos = 0;
 			_animState = ANIM_PLAY;
 			_pause = true;
+			SpriteComponent* charSC = _sprites.get(_charSprite);
+			SpriteComponent* dialogBgSC = _sprites.get(_dialogBg);
 //			dbgLogger.error("  play ", cmd);
 			if(cmd == "show_char") {
 				auto a = std::make_shared<CompoundAnim>();
-				_charSprite.sprite()->setTexture(step[1].asString());
+				charSC->setTexture(step[1].asString());
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _charSprite,
 				               _charSprite.transform().translation().head<3>(),
 				               Vector3(0, 0, _charSprite.transform()(2, 3))));
 				a->addAnim(std::make_shared<ColorAnim>(
-				               animLen, _charSprite,
-				               _charSprite.sprite()->color(),
+				               &_sprites, animLen, _charSprite,
+				               charSC->color(),
 				               Vector4(1, 1, 1, 1)));
-				_dialogBg.sprite()->setAnchor(Vector2(1, 0));
+				dialogBgSC->setAnchor(Vector2(1, 0));
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _dialogBg,
 				               _dialogBg.transform().translation().head<3>(),
@@ -469,8 +471,8 @@ void MainState::nextAnimationStep() {
 				               _charSprite.transform().translation().head<3>(),
 				               Vector3(-550, 0, _charSprite.transform()(2, 3))));
 				a->addAnim(std::make_shared<ColorAnim>(
-				               animLen, _charSprite,
-				               _charSprite.sprite()->color(),
+				               &_sprites, animLen, _charSprite,
+				               charSC->color(),
 				               Vector4(0, 0, 0, 1)));
 				_anim = a;
 			}
@@ -481,10 +483,10 @@ void MainState::nextAnimationStep() {
 				               _charSprite.transform().translation().head<3>(),
 				               Vector3(-550, 0, _charSprite.transform()(2, 3))));
 				a->addAnim(std::make_shared<ColorAnim>(
-				               animLen, _charSprite,
-				               _charSprite.sprite()->color(),
+				               &_sprites, animLen, _charSprite,
+				               charSC->color(),
 				               Vector4(0, 0, 0, 1)));
-				_dialogBg.sprite()->setAnchor(Vector2(1, 0));
+				dialogBgSC->setAnchor(Vector2(1, 0));
 				a->addAnim(std::make_shared<MoveAnim>(
 				               animLen, _dialogBg,
 				               _dialogBg.transform().translation().head<3>(),
@@ -568,8 +570,9 @@ void MainState::startGame(int level) {
 	_ship = loadEntity("ship.json", _gameLayer);
 //	dbgLogger.error(_ship.name());
 	_ship.place(Vector3(4*_blockSize, 11*_blockSize, 0.4));
-	_ship.sprite()->setColor(_levelColor2);
-	_ship.sprite()->setTileIndex(4);
+	SpriteComponent* shipSC = _sprites.get(_ship);
+	shipSC->setColor(_levelColor2);
+	shipSC->setTileIndex(4);
 	_shipHSpeed = 2*_minShipHSpeed;
 	_shipVSpeed = 0;
 	_climbCharge = _thrustMaxCharge;
@@ -578,9 +581,10 @@ void MainState::startGame(int level) {
 //	EntityRef ship2 = _ship.firstChild();
 //	while(ship2.nextSibling().isValid()) ship2 = ship2.nextSibling();
 	EntityRef ship2 = _ship.clone(_ship, "ship_2");
+	SpriteComponent* ship2SC = _sprites.get(ship2);
 //	dbgLogger.error(ship2.name());
-	ship2.sprite()->setColor(_levelColor);
-	ship2.sprite()->setTileIndex(1);
+	ship2SC->setColor(_levelColor);
+	ship2SC->setTileIndex(1);
 	ship2.place(Vector3(0, 0, .1));
 
 	_shipShape = 0;
@@ -589,17 +593,19 @@ void MainState::startGame(int level) {
 	for (int i = 0 ; i < _shipPartCount ; ++i)
 	{
 		_shipParts[i] = _ship.clone(_ship, ("shipPart_" + std::to_string(i)).c_str());
+		SpriteComponent* partSC = _sprites.get(_shipParts[i]);
 //		dbgLogger.error(_shipParts[i].name());
-		_shipParts[i].sprite()->setTileGridSize(Vector2i(3, 6));
-		_shipParts[i].sprite()->setTileIndex(i + ((i<3)? 9: 12));
-		_shipParts[i].sprite()->setColor(_levelColor2);
+		partSC->setTileGridSize(Vector2i(3, 6));
+		partSC->setTileIndex(i + ((i<3)? 9: 12));
+		partSC->setColor(_levelColor2);
 		Vector2 pos = partExpectedPosition(_shipShape, i);
 		_shipParts[i].place(Vector3(pos[0], pos[1], 0));
 
 //		EntityRef part2 = _shipParts[i].firstChild();
 		EntityRef part2 = _shipParts[i].clone(_shipParts[i], (_shipParts[i].name() + std::string("_2")).c_str());
-		part2.sprite()->setColor(_levelColor);
-		part2.sprite()->setTileIndex(i + ((i<3)? 0: 3));
+		SpriteComponent* part2SC = _sprites.get(part2);
+		part2SC->setColor(_levelColor);
+		part2SC->setTileIndex(i + ((i<3)? 0: 3));
 		part2.place(Vector3(0, 0, 0.1));
 
 		_partAlive[i] = true;
@@ -635,7 +641,7 @@ void MainState::startGame(int level) {
 	_dialogText.place(Vector3(0, 0, 0.8));
 	_prevFrameTime = _loop.tickTime();
 
-	_entities.updateWorldTransform();
+	_entities.updateWorldTransforms();
 
 	_animState = ANIM_NONE;
 }
@@ -643,6 +649,7 @@ void MainState::startGame(int level) {
 
 void MainState::updateTick() {
 	_inputs.sync();
+	_entities.setPrevWorldTransforms();
 
 	if(_quitInput->justPressed()) {
 		quit();
@@ -965,8 +972,8 @@ void MainState::updateFrame() {
 	                  / window()->height();
 	_map.render(scroll, warningScrollDist(), screenWidth, 70, _camera);
 	renderBeams(_loop.frameInterp(), _camera);
-	_sprites.render(_loop.frameInterp(), _camera);
-	_texts.render(_loop.frameInterp(), _camera);
+	_sprites.render(_entities.root(), _loop.frameInterp(), _camera);
+	_texts.render(_entities.root(), _loop.frameInterp(), _camera);
 
 	_renderPass.render();
 
@@ -1030,12 +1037,14 @@ void MainState::renderBeams(float interp, const OrthographicCamera& camera) {
 	states.textureFlags = Texture::TRILINEAR | Texture::REPEAT;
 	states.blendingMode = BLEND_ALPHA;
 
-	const ShaderParameter* params = _spriteRenderer.addShaderParameters(
-	            _spriteRenderer.shader(), camera.transform(), 0);
-
 	TextureAspectSP texAspect = _beamsTex->aspect<TextureAspect>();
 	TextureSP tex = texAspect->get();
 	states.texture = tex;
+
+	Vector4i tileInfo;
+	tileInfo << 1, 2, tex->width(), tex->height();
+	const ShaderParameter* params = _spriteRenderer.addShaderParameters(
+	            _spriteRenderer.shader(), camera.transform(), 0, tileInfo);
 
 	Matrix4 wt = lerp(interp,
 	                  _ship._get()->prevWorldTransform.matrix(),
@@ -1107,7 +1116,9 @@ EntityRef MainState::loadEntity(const Path& path, EntityRef parent, const Path& 
 		parent = _gameLayer;
 	}
 
-	return _entities.createEntityFromJson(parent, json, localPath.dir());
+	EntityRef entity = _entities.createEntity(parent, localPath.utf8CStr());
+	_entities.initializeFromJson(entity, json, localPath.dir());
+	return entity;
 }
 
 
